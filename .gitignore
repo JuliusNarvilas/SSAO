@@ -234,3 +234,15 @@ _Pvt_Extensions
 
 # FAKE - F# Make
 .fake/
+
+# Exclude Dependencies and Assets folder
+!**/[Dd]ependencies/**
+!**/[Aa]ssets/**
+**/ORBIS_Release/**
+**/ORBIS_Debug/**
+*.o
+*.tlog
+*.a
+*.elf
+*.sb
+*.sdb

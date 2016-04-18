@@ -1,4 +1,3 @@
-#ifndef ORBIS
 #pragma once
 
 #include "Matrix4Intrinsics.h"
@@ -68,21 +67,23 @@ class Matrix3Intrinsics {
 		return out;
 	}
 
-	inline void SetRow(unsigned int row, const Vector3Intrinsics& val) {
+	inline Matrix3Intrinsics& SetRow(unsigned int row, const Vector3Intrinsics& val) {
 		assert(("Matrix3Intrinsics::setRow out of bounds (row >= 3)", row < 3));
 		values[row]		= val.x;
 		values[row + 3] = val.y;
 		values[row + 6] = val.z;
+		return *this;
 	}
 
-	inline void SetCol(unsigned int column, const Vector3Intrinsics& val) {
+	inline Matrix3Intrinsics& SetCol(unsigned int column, const Vector3Intrinsics& val) {
 		assert(("Matrix3Intrinsics::setColumn out of bounds (column >= 3)", column < 3));
 		memcpy(&values[column * 3], &val, sizeof(Vector3Intrinsics));
+		return *this;
 	}
 
 	inline Vector3Intrinsics GetDiagonal() const { return Vector3Intrinsics(values[0], values[4], values[8]); }
 
-	inline void SetDiagonal(const Vector3Intrinsics& v) { values[0] = v.x; values[4] = v.y; values[8] = v.z; }
+	inline Matrix3Intrinsics& SetDiagonal(const Vector3Intrinsics& v) { values[0] = v.x; values[4] = v.y; values[8] = v.z; return *this; }
 
 
 	inline Vector3Intrinsics operator*(const Vector3Intrinsics& v) const {
@@ -95,26 +96,29 @@ class Matrix3Intrinsics {
 
 	inline Matrix3Intrinsics operator*(const Matrix3Intrinsics& m) const {
 		Matrix3Intrinsics result;
-		for(unsigned i = 0; i < 9; i += 3)
-			for(unsigned j = 0; j < 3; ++j)
+		for(uint i = 0; i < 9; i += 3)
+			for(uint j = 0; j < 3; ++j)
 				result.values[i + j] = m.values[i] * values[j] + m.values[i + 1] * values[j + 3] + m.values[i + 2] * values[j + 6];
 
 		return result;
 	};
 
-	inline void Transpose() {
+	inline Matrix3Intrinsics& Transpose() {
 		__m128 empty = _mm_setzero_ps();
 		__m128 column1 = _mm_loadu_ps(&values[0]);
 		__m128 column2 = _mm_loadu_ps(&values[3]);
-		__m128 column3 = _mm_loadu_ps(&values[6]);
+		__m128Converter column3;
+		column3.mmvalue = _mm_loadu_ps(&values[6]);
 
-		_MM_TRANSPOSE4_PS(column1, column2, column3, empty);
+		_MM_TRANSPOSE4_PS(column1, column2, column3.mmvalue, empty);
 
 		_mm_storeu_ps(&values[0], column1);
 		_mm_storeu_ps(&values[3], column2);
-		values[6] = column3.m128_f32[0];
-		values[7] = column3.m128_f32[1];
-		values[8] = column3.m128_f32[2];
+		values[6] = column3.x;
+		values[7] = column3.y;
+		values[8] = column3.z;
+
+		return *this;
 	}
 
 	float Determinant() const;
@@ -148,4 +152,4 @@ class Matrix3Intrinsics {
 	//Handy string output for the matrix. Can get a bit messy, but better than nothing!
 	friend std::ostream& operator<<(std::ostream& o, const Matrix3Intrinsics& m);
 };
-#endif
+

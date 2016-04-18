@@ -1,10 +1,7 @@
-#ifndef ORBIS
 #include "Matrix4Intrinsics.h"
 
 #include "Matrix3Intrinsics.h"
 #include "Matrix4Simple.h"
-#include "Helpers/degrees.h"
-#include "Helpers/common.h"
 
 const float Matrix4Intrinsics::EMPTY_DATA[16] = {
 	0, 0, 0, 0,
@@ -23,8 +20,7 @@ const float Matrix4Intrinsics::IDENTITY_DATA[16] = {
 const Matrix4Intrinsics Matrix4Intrinsics::EMPTY = Matrix4Intrinsics(Matrix4Intrinsics::EMPTY_DATA);
 const Matrix4Intrinsics Matrix4Intrinsics::IDENTITY = Matrix4Intrinsics(Matrix4Intrinsics::IDENTITY_DATA);
 
-Matrix4Intrinsics::Matrix4Intrinsics(const Matrix3Intrinsics& mat)
-{
+Matrix4Intrinsics::Matrix4Intrinsics(const Matrix3Intrinsics& mat) {
 	const unsigned int size = 3 * sizeof(float);
 	memcpy(&values[0], &mat.values[0], size);
 	memcpy(&values[4], &mat.values[3], size);
@@ -34,91 +30,29 @@ Matrix4Intrinsics::Matrix4Intrinsics(const Matrix3Intrinsics& mat)
 }
 
 
-Matrix4Intrinsics::Matrix4Intrinsics(const Matrix4Simple& mat)
-{
+Matrix4Intrinsics::Matrix4Intrinsics(const Matrix4Simple& mat) {
 	memcpy(&values[0], &mat.values[0], sizeof(Matrix4Simple));
 }
 
-Matrix4Intrinsics Matrix4Intrinsics::operator*(const Matrix4Intrinsics& m) const
-{
-	//http://fhtr.blogspot.co.uk/2010/02/4x4-float-matrix-multiplication-using.html
-	Matrix4Intrinsics result = EMPTY;
-	for (int i = 0; i < 4; ++i)
-		for (int j = 0; j < 4; ++j)
-			result.mmvalues[j] = _mm_add_ps(_mm_mul_ps(_mm_set1_ps(m.values[j * 4 + i]), mmvalues[i]), result.mmvalues[j]);
-	return result;
-}
 
-Vector3Intrinsics Matrix4Intrinsics::operator*(const Vector3Intrinsics& v) const
-{
-	__m128 m0 = _mm_mul_ps(mmvalues[0], _mm_set1_ps(v.x));
-	__m128 m1 = _mm_mul_ps(mmvalues[1], _mm_set1_ps(v.y));
-	__m128 m2 = _mm_mul_ps(mmvalues[2], _mm_set1_ps(v.z));
-
-	__m128 tempValue = _mm_add_ps(_mm_add_ps(m0, m1), _mm_add_ps(m2, mmvalues[3]));
-	tempValue = _mm_div_ps(tempValue, _mm_shuffle_ps(tempValue, tempValue, _MM_SHUFFLE(0, 0, 0, 0)));
-	return Vector3Intrinsics(tempValue.m128_f32[0], tempValue.m128_f32[1], tempValue.m128_f32[2]);
-};
-
-Vector3Simple Matrix4Intrinsics::operator*(const Vector3Simple& v) const
-{
-	__m128 m0 = _mm_mul_ps(mmvalues[0], _mm_set1_ps(v.x));
-	__m128 m1 = _mm_mul_ps(mmvalues[1], _mm_set1_ps(v.y));
-	__m128 m2 = _mm_mul_ps(mmvalues[2], _mm_set1_ps(v.z));
-
-	__m128 tempValue = _mm_add_ps(_mm_add_ps(m0, m1), _mm_add_ps(m2, mmvalues[3]));
-	tempValue = _mm_div_ps(tempValue, _mm_shuffle_ps(tempValue, tempValue, _MM_SHUFFLE(0, 0, 0, 0)));
-	return Vector3Simple(tempValue.m128_f32[0], tempValue.m128_f32[1], tempValue.m128_f32[2]);
-};
-
-Vector3_1Intrinsics Matrix4Intrinsics::operator*(const Vector3_1Intrinsics& v) const
-{
-	__m128 m0 = _mm_mul_ps(mmvalues[0], _mm_set1_ps(v.x));
-	__m128 m1 = _mm_mul_ps(mmvalues[1], _mm_set1_ps(v.y));
-	__m128 m2 = _mm_mul_ps(mmvalues[2], _mm_set1_ps(v.z));
-
-	__m128 tempValue = _mm_add_ps(_mm_add_ps(m0, m1), _mm_add_ps(m2, mmvalues[3]));
-	return _mm_div_ps(tempValue, _mm_shuffle_ps(tempValue, tempValue, _MM_SHUFFLE(0, 0, 0, 0)));
-};
-
-Vector4Intrinsics Matrix4Intrinsics::operator*(const Vector4Intrinsics& v) const
-{
-	__m128 m0 = _mm_mul_ps(mmvalues[0], _mm_set1_ps(v.x));
-	__m128 m1 = _mm_mul_ps(mmvalues[1], _mm_set1_ps(v.y));
-	__m128 m2 = _mm_mul_ps(mmvalues[2], _mm_set1_ps(v.z));
-	__m128 m3 = _mm_mul_ps(mmvalues[3], _mm_set1_ps(v.w));
-
-	return Vector4Intrinsics(_mm_add_ps(_mm_add_ps(m0, m1), _mm_add_ps(m2, m3)));
-};
-
-Vector4Simple Matrix4Intrinsics::operator*(const Vector4Simple& v) const
-{
-	__m128 m0 = _mm_mul_ps(mmvalues[0], _mm_set1_ps(v.x));
-	__m128 m1 = _mm_mul_ps(mmvalues[1], _mm_set1_ps(v.y));
-	__m128 m2 = _mm_mul_ps(mmvalues[2], _mm_set1_ps(v.z));
-	__m128 m3 = _mm_mul_ps(mmvalues[3], _mm_set1_ps(v.w));
-
-	__m128 tempValue = _mm_add_ps(_mm_add_ps(m0, m1), _mm_add_ps(m2, m3));
-	return Vector4Simple(tempValue.m128_f32[0], tempValue.m128_f32[1], tempValue.m128_f32[2], tempValue.m128_f32[3]);
-};
-
-void Matrix4Intrinsics::Transpose()
-{
-	_MM_TRANSPOSE4_PS(mmvalues[0], mmvalues[1], mmvalues[2], mmvalues[3]);
-}
-
-Matrix4Intrinsics Matrix4Intrinsics::GetRotation() const
-{
+Matrix4Intrinsics Matrix4Intrinsics::GetRotation() const {
 	Matrix4Intrinsics result(*this);
 	result.SetTranslation(Vector3Intrinsics::ZEROS);
 	result.values[3] = result.values[7] = result.values[11] = 0.0f;
 	result.values[15] = 1.0f;
 	return result;
 }
+Matrix4Intrinsics Matrix4Intrinsics::GetTransposedRotation() const {
+	Matrix4Intrinsics result(*this);
+	result.SetTranslation(Vector3Intrinsics::ZEROS);
+	result.values[3] = result.values[7] = result.values[11] = 0.0f;
+	result.values[15] = 1.0f;
+	result.Transpose();
+	return result;
+}
 
 //http://www.flipcode.com/documents/matrfaq.html#Q37
-Vector3Intrinsics Matrix4Intrinsics::GetEulerAngles(const Matrix4Intrinsics& mat)
-{
+Vector3Intrinsics Matrix4Intrinsics::GetEulerAngles(const Matrix4Intrinsics& mat) {
 	float angle_x = 0.0f;
 	float angle_y = -asin( mat.values[8]);        /* Calculate Y-axis angle */
 	float angle_z = 0.0f;
@@ -127,14 +61,13 @@ Vector3Intrinsics Matrix4Intrinsics::GetEulerAngles(const Matrix4Intrinsics& mat
 	angle_y *= RAD;
 
 	if (fabs(c) > 0.005) { /* Gimball lock? */
-		c = 1.0f / c;
-		float tr_x = mat.values[10] * c;           /* No, so get X-axis angle */
-		float tr_y = -mat.values[9] * c;
+		float tr_x =  mat.values[10] / c;           /* No, so get X-axis angle */
+		float tr_y = -mat.values[9]  / c;
 
 		angle_x = atan2( tr_y, tr_x ) * RAD;
 
-		tr_x = mat.values[0] * c;            /* Get Z-axis angle */
-		tr_y = -mat.values[4] * c;
+		tr_x =  mat.values[0] / c;            /* Get Z-axis angle */
+		tr_y = -mat.values[4] / c;
 
 		angle_z = atan2(tr_y, tr_x) * RAD;
 	} else {								/* Gimball lock has occurred */
@@ -144,47 +77,41 @@ Vector3Intrinsics Matrix4Intrinsics::GetEulerAngles(const Matrix4Intrinsics& mat
 		angle_z = atan2(tr_y, tr_x) * RAD;
 	}
 
-	return Vector3Intrinsics(ClampValues(angle_x, 0.0f, 360.0f), ClampValues(angle_y, 0.0f, 360.0f), ClampValues(angle_z, 0.0f, 360.0f));
+	return Vector3Intrinsics(Clamp(angle_x, 0.0f, 360.0f), Clamp(angle_y, 0.0f, 360.0f), Clamp(angle_z, 0.0f, 360.0f));
 }
 
-Matrix4Intrinsics Matrix4Intrinsics::Perspective(float znear, float zfar, float aspect, float fov)
-{
+Matrix4Intrinsics Matrix4Intrinsics::Perspective(float znear, float zfar, float aspect, float fov) {
 	Matrix4Intrinsics m;
 	const float h = 1.0f / tan(fov * PI_OVER_360);
-	float neg_depth_r = 1.0f / (znear - zfar);
+	float neg_depth = znear - zfar;
 
 	m.values[0]	= h / aspect;
 	m.values[5]	= h;
-	m.values[10] = (zfar + znear) * neg_depth_r;
+	m.values[10] = (zfar + znear) / neg_depth;
 	m.values[11] = -1.0f;
-	m.values[14] = 2.0f * (znear * zfar) * neg_depth_r;
+	m.values[14] = 2.0f * (znear * zfar) / neg_depth;
 	m.values[15] = 0.0f;
 
 	return m;
 }
 
 //http://www.opengl.org/sdk/docs/man/xhtml/glOrtho.xml
-Matrix4Intrinsics Matrix4Intrinsics::Orthographic(float znear, float zfar, float right, float left, float top, float bottom)
-{
+Matrix4Intrinsics Matrix4Intrinsics::Orthographic(float znear, float zfar, float right, float left, float top, float bottom)	{
 	Matrix4Intrinsics m;
-	float x_r = 1.0f / (right - left);
-	float y_r = 1.0f / (top - bottom);
-	float z_r = 1.0f / (zfar - znear);
 
-	m.values[0] = 2.0f * x_r;
-	m.values[5]	= 2.0f * y_r;
-	m.values[10] = -2.0f * z_r;
+	m.values[0]	= 2.0f / (right - left);
+	m.values[5]	= 2.0f / (top - bottom);
+	m.values[10] = -2.0f / (zfar - znear);
 
-	m.values[12] = -(right + left) * x_r;
-	m.values[13] = -(top + bottom) * y_r;
-	m.values[14] = -(zfar + znear) * z_r;
+	m.values[12] = -(right + left) / (right - left);
+	m.values[13] = -(top + bottom) / (top - bottom);
+	m.values[14] = -(zfar + znear) / (zfar - znear);
 	m.values[15] = 1.0f;
 
 	return m;
 }
 
-Matrix4Intrinsics Matrix4Intrinsics::View(const Vector3Intrinsics& from, const Vector3Intrinsics& lookingAt, const Vector3Intrinsics& up)
-{
+Matrix4Intrinsics Matrix4Intrinsics::View(const Vector3Intrinsics& from, const Vector3Intrinsics& lookingAt, const Vector3Intrinsics& up)	{
 	Matrix4Intrinsics r;
 	r.SetTranslation(Vector3Intrinsics(-from.x, -from.y, -from.z));
 
@@ -213,8 +140,7 @@ Matrix4Intrinsics Matrix4Intrinsics::View(const Vector3Intrinsics& from, const V
 	return m * r;
 }
 
-Matrix4Intrinsics Matrix4Intrinsics::RotationX(float degrees)
-{
+Matrix4Intrinsics Matrix4Intrinsics::RotationX(float degrees)	 {
 	Matrix4Intrinsics m;
 	float rad = DegToRad(degrees);
 	float c = cos(rad);
@@ -229,8 +155,7 @@ Matrix4Intrinsics Matrix4Intrinsics::RotationX(float degrees)
 	return m;
 }
 
-Matrix4Intrinsics Matrix4Intrinsics::RotationY(float degrees)
-{
+Matrix4Intrinsics Matrix4Intrinsics::RotationY(float degrees)	 {
 	Matrix4Intrinsics m;
 	float rad = DegToRad(degrees);
 	float c = cos(rad);
@@ -245,8 +170,7 @@ Matrix4Intrinsics Matrix4Intrinsics::RotationY(float degrees)
 	return m;
 }
 
-Matrix4Intrinsics Matrix4Intrinsics::RotationZ(float degrees)
-{
+Matrix4Intrinsics Matrix4Intrinsics::RotationZ(float degrees)	 {
 	Matrix4Intrinsics m;
 	float rad = DegToRad(degrees);
 	float c = cos(rad);
@@ -261,61 +185,60 @@ Matrix4Intrinsics Matrix4Intrinsics::RotationZ(float degrees)
 	return m;
 }
 
-Matrix4Intrinsics Matrix4Intrinsics::Rotation(float degrees, const Vector3Intrinsics& axis)
-{
+Matrix4Intrinsics Matrix4Intrinsics::Rotation(float degrees, const Vector3Intrinsics& axis)	 {
+	Matrix4Intrinsics m;
 	Vector3Intrinsics axisNorm = axis.Normal();
 	float rad = DegToRad(degrees);
 	float c = cos(rad);
 	float s = sin(rad);
 
+	__m128Converter normXYZWWithC, col0, col1, col2;
 	__m128 normXYZW = _mm_set_ps(0, axisNorm.z, axisNorm.y, axisNorm.x);
-	__m128 normXYZWWithC = _mm_mul_ps(normXYZW, _mm_set1_ps(1.0f - c));
-	__m128 col0 = _mm_mul_ps(normXYZW, _mm_set1_ps(normXYZWWithC.m128_f32[0]));
-	__m128 col1 = _mm_mul_ps(normXYZW, _mm_set1_ps(normXYZWWithC.m128_f32[1]));
-	__m128 col2 = _mm_mul_ps(normXYZW, _mm_set1_ps(normXYZWWithC.m128_f32[2]));
+	normXYZWWithC.mmvalue = _mm_mul_ps(normXYZW, _mm_set1_ps(1.0f - c));
+	col0.mmvalue = _mm_mul_ps(normXYZW, _mm_set1_ps(normXYZWWithC.x));
+	col1.mmvalue = _mm_mul_ps(normXYZW, _mm_set1_ps(normXYZWWithC.y));
+	col2.mmvalue = _mm_mul_ps(normXYZW, _mm_set1_ps(normXYZWWithC.z));
 
-	Matrix4Intrinsics m;
-	m.values[0] = col0.m128_f32[0] + c;
-	m.values[1] = col0.m128_f32[1] + (axisNorm.z * s);
-	m.values[2] = col0.m128_f32[2] - (axisNorm.y * s);
-	m.values[4] = col1.m128_f32[0] - (axisNorm.z * s);
-	m.values[5] = col1.m128_f32[1] + c;
-	m.values[6] = col1.m128_f32[2] + (axisNorm.x * s);
-	m.values[8] = col2.m128_f32[0] + (axisNorm.y * s);
-	m.values[9] = col2.m128_f32[1] - (axisNorm.x * s);
-	m.values[10] = col2.m128_f32[2] + c;
+	m.values[0]  = col0.x + c;
+	m.values[1]  = col0.y + (axisNorm.z * s);
+	m.values[2]  = col0.z - (axisNorm.y * s);
+	m.values[4]  = col1.x - (axisNorm.z * s);
+	m.values[5]  = col1.y + c;
+	m.values[6]  = col1.z + (axisNorm.x * s);
+	m.values[8]  = col2.x + (axisNorm.y * s);
+	m.values[9]  = col2.y - (axisNorm.x * s);
+	m.values[10] = col2.z + c;
 
 	return m;
 }
-Matrix4Intrinsics Matrix4Intrinsics::Rotation(float degrees, const Vector3Simple& axis)
-{
+Matrix4Intrinsics Matrix4Intrinsics::Rotation(float degrees, const Vector3Simple& axis)	 {
+	Matrix4Intrinsics m;
 	Vector3Simple axisNorm = axis.Normal();
 	float rad = DegToRad(degrees);
 	float c = cos(rad);
 	float s = sin(rad);
 
-	__m128 normXYZW = _mm_set_ps(0, axisNorm.z, axisNorm.y, axisNorm.x);
-	__m128 normXYZWWithC = _mm_mul_ps(normXYZW, _mm_set1_ps(1.0f - c));
-	__m128 col0 = _mm_mul_ps(normXYZW, _mm_set1_ps(normXYZWWithC.m128_f32[0]));
-	__m128 col1 = _mm_mul_ps(normXYZW, _mm_set1_ps(normXYZWWithC.m128_f32[1]));
-	__m128 col2 = _mm_mul_ps(normXYZW, _mm_set1_ps(normXYZWWithC.m128_f32[2]));
+	__m128Converter normXYZW, normXYZWWithC, col0, col1, col2;
+	normXYZW.mmvalue = _mm_set_ps(0, axisNorm.z, axisNorm.y, axisNorm.x);
+	normXYZWWithC.mmvalue = _mm_mul_ps(normXYZW.mmvalue, _mm_set1_ps(1.0f - c));
+	col0.mmvalue = _mm_mul_ps(normXYZW.mmvalue, _mm_set1_ps(normXYZWWithC.x));
+	col1.mmvalue = _mm_mul_ps(normXYZW.mmvalue, _mm_set1_ps(normXYZWWithC.y));
+	col2.mmvalue = _mm_mul_ps(normXYZW.mmvalue, _mm_set1_ps(normXYZWWithC.z));
 
-	Matrix4Intrinsics m;
-	m.values[0] = col0.m128_f32[0] + c;
-	m.values[1] = col0.m128_f32[1] + (axisNorm.z * s);
-	m.values[2] = col0.m128_f32[2] - (axisNorm.y * s);
-	m.values[4] = col1.m128_f32[0] - (axisNorm.z * s);
-	m.values[5] = col1.m128_f32[1] + c;
-	m.values[6] = col1.m128_f32[2] + (axisNorm.x * s);
-	m.values[8] = col2.m128_f32[0] + (axisNorm.y * s);
-	m.values[9] = col2.m128_f32[1] - (axisNorm.x * s);
-	m.values[10] = col2.m128_f32[2] + c;
+	m.values[0]  = col0.x + c;
+	m.values[1]  = col0.y + (axisNorm.z * s);
+	m.values[2]  = col0.z - (axisNorm.y * s);
+	m.values[4]  = col1.x - (axisNorm.z * s);
+	m.values[5]  = col1.y + c;
+	m.values[6]  = col1.z + (axisNorm.x * s);
+	m.values[8]  = col2.x + (axisNorm.y * s);
+	m.values[9]  = col2.y - (axisNorm.x * s);
+	m.values[10] = col2.z + c;
 
 	return m;
 }
 
-Matrix4Intrinsics Matrix4Intrinsics::Rotation(float degreesX, float degreesY, float degreesZ)
-{
+Matrix4Intrinsics Matrix4Intrinsics::Rotation(float degreesX, float degreesY, float degreesZ) {
 	// Building this matrix directly is faster than multiplying three matrices for X, Y and Z
 	float phi = DegToRad(degreesX), theta = DegToRad(degreesY), psi = DegToRad(degreesZ);
 	float sinTh = sin(theta), cosTh = cos(theta),
@@ -335,8 +258,7 @@ Matrix4Intrinsics Matrix4Intrinsics::Rotation(float degreesX, float degreesY, fl
 	return result;
 }
 
-Matrix4Intrinsics Matrix4Intrinsics::Scale(const Vector3Intrinsics& scale)
-{
+Matrix4Intrinsics Matrix4Intrinsics::Scale(const Vector3Intrinsics& scale)	{
 	Matrix4Intrinsics m;
 	m.values[0]  = scale.x;
 	m.values[5]  = scale.y;
@@ -344,8 +266,7 @@ Matrix4Intrinsics Matrix4Intrinsics::Scale(const Vector3Intrinsics& scale)
 	return m;
 }
 
-Matrix4Intrinsics Matrix4Intrinsics::Scale(const Vector3Simple& scale)
-{
+Matrix4Intrinsics Matrix4Intrinsics::Scale(const Vector3Simple& scale)	{
 	Matrix4Intrinsics m;
 	m.values[0]  = scale.x;
 	m.values[5]  = scale.y;
@@ -353,8 +274,7 @@ Matrix4Intrinsics Matrix4Intrinsics::Scale(const Vector3Simple& scale)
 	return m;
 }
 
-Matrix4Intrinsics Matrix4Intrinsics::Translation(const Vector3Intrinsics& translation)
-{
+Matrix4Intrinsics Matrix4Intrinsics::Translation(const Vector3Intrinsics& translation)	{
 	Matrix4Intrinsics m;
 	m.values[12] = translation.x;
 	m.values[13] = translation.y;
@@ -362,8 +282,7 @@ Matrix4Intrinsics Matrix4Intrinsics::Translation(const Vector3Intrinsics& transl
 	return m;
 }
 
-Matrix4Intrinsics Matrix4Intrinsics::Translation(const Vector3Simple& translation)
-{
+Matrix4Intrinsics Matrix4Intrinsics::Translation(const Vector3Simple& translation)	{
 	Matrix4Intrinsics m;
 	m.values[12] = translation.x;
 	m.values[13] = translation.y;
@@ -372,8 +291,7 @@ Matrix4Intrinsics Matrix4Intrinsics::Translation(const Vector3Simple& translatio
 }
 
 
-std::ostream& operator<<(std::ostream& o, const Matrix4Intrinsics& m)
-{
+std::ostream& operator<<(std::ostream& o, const Matrix4Intrinsics& m) {
 	return o << "Mat4(" << LINE_SEPARATOR <<
 	       "\t" << m.values[0] << ", " << m.values[4] << ", " << m.values[8] << ", " << m.values [12] << ", " << LINE_SEPARATOR <<
 	       "\t" << m.values[1] << ", " << m.values[5] << ", " << m.values[9] << ", " << m.values [13]  << ", " << LINE_SEPARATOR <<
@@ -381,4 +299,3 @@ std::ostream& operator<<(std::ostream& o, const Matrix4Intrinsics& m)
 	       "\t" << m.values[3] << ", " << m.values[7] << ", " << m.values[11] << ", " << m.values [15] << LINE_SEPARATOR <<
 	       " )";
 }
-#endif

@@ -1,9 +1,6 @@
-#ifndef ORBIS
 #include "Matrix3Intrinsics.h"
 
 #include "Matrix4Intrinsics.h"
-#include "Helpers/degrees.h"
-#include "Helpers/common.h"
 #include <cstring>
 
 const float Matrix3Intrinsics::EMPTY_DATA[9] = {
@@ -57,21 +54,22 @@ Matrix3Intrinsics Matrix3Intrinsics::Rotation(float degrees, const Vector3Intrin
 	float c = cos(DegToRad(degrees));
 	float s = sin(DegToRad(degrees));
 
-	__m128 normXYZW = _mm_set_ps(0, axisNorm.z, axisNorm.y, axisNorm.x);
-	__m128 normXYZWWithC = _mm_mul_ps(normXYZW, _mm_set1_ps(1.0f - c));
-	__m128 col0 = _mm_mul_ps(normXYZW, _mm_set1_ps(normXYZWWithC.m128_f32[0]));
-	__m128 col1 = _mm_mul_ps(normXYZW, _mm_set1_ps(normXYZWWithC.m128_f32[1]));
-	__m128 col2 = _mm_mul_ps(normXYZW, _mm_set1_ps(normXYZWWithC.m128_f32[2]));
+	__m128Converter normXYZW, normXYZWWithC, col0, col1, col2;
+	normXYZW.mmvalue = _mm_set_ps(0, axisNorm.z, axisNorm.y, axisNorm.x);
+	normXYZWWithC.mmvalue = _mm_mul_ps(normXYZW.mmvalue, _mm_set1_ps(1.0f - c));
+	col0.mmvalue = _mm_mul_ps(normXYZW.mmvalue, _mm_set1_ps(normXYZWWithC.x));
+	col1.mmvalue = _mm_mul_ps(normXYZW.mmvalue, _mm_set1_ps(normXYZWWithC.y));
+	col2.mmvalue = _mm_mul_ps(normXYZW.mmvalue, _mm_set1_ps(normXYZWWithC.z));
 
-	m.values[0] = col0.m128_f32[0] + c;
-	m.values[1] = col0.m128_f32[1] + (axisNorm.z * s);
-	m.values[2] = col0.m128_f32[2] - (axisNorm.y * s);
-	m.values[3] = col1.m128_f32[0] - (axisNorm.z * s);
-	m.values[4] = col1.m128_f32[1] + c;
-	m.values[5] = col1.m128_f32[2] + (axisNorm.x * s);
-	m.values[6] = col2.m128_f32[0] + (axisNorm.y * s);
-	m.values[7] = col2.m128_f32[1] - (axisNorm.x * s);
-	m.values[8] = col2.m128_f32[2] + c;
+	m.values[0] = col0.x + c;
+	m.values[1] = col0.y + (axisNorm.z * s);
+	m.values[2] = col0.z - (axisNorm.y * s);
+	m.values[3] = col1.x - (axisNorm.z * s);
+	m.values[4] = col1.y + c;
+	m.values[5] = col1.z + (axisNorm.x * s);
+	m.values[6] = col2.x + (axisNorm.y * s);
+	m.values[7] = col2.y - (axisNorm.x * s);
+	m.values[8] = col2.z + c;
 	return m;
 }
 
@@ -142,8 +140,7 @@ Matrix3Intrinsics Matrix3Intrinsics::RotationZ(float degrees)	 {
 
 Matrix3Intrinsics Matrix3Intrinsics::Scale(const Vector3Intrinsics& scale) {
 	Matrix3Intrinsics m;
-	m.SetDiagonal(scale);
-	return m;
+	return m.SetDiagonal(scale);
 }
 
 
@@ -220,4 +217,3 @@ std::ostream& operator<<(std::ostream& o, const Matrix3Intrinsics& m) {
 	       "\t" << m.values[2] << ", " << m.values[5] << ", " << m.values[8] << LINE_SEPARATOR <<
 	       ")";
 }
-#endif

@@ -1,4 +1,3 @@
-#ifndef ORBIS
 #pragma once
 
 //4201-nameless structure;
@@ -17,7 +16,7 @@ _-_-_-_-_-_-_-""  ""
 
 */
 
-#include "Memory/common.h"
+#include "Helpers/common.h"
 #include <cmath>
 #include <iostream>
 #include <smmintrin.h>
@@ -26,7 +25,7 @@ _-_-_-_-_-_-_-""  ""
 /// <summary>
 /// Class from http://fastcpp.blogspot.co.uk/2011/12/simple-vector3-class-with-sse-support.html
 /// </summary>
-MEM_ALIGN
+CACHE_ALIGN
 class Vector4Intrinsics	{
  public:
 	inline Vector4Intrinsics() : mmvalue(_mm_set1_ps(1.0f)) {}
@@ -41,7 +40,7 @@ class Vector4Intrinsics	{
 		return Vector3Intrinsics(x, y, z);
 	}
 
-	MEM_ALIGN
+	CACHE_ALIGN
 	struct {
 		union {
 			struct {
@@ -54,7 +53,7 @@ class Vector4Intrinsics	{
 		};
 	};
 
-	inline void ToZero() { mmvalue = _mm_setzero_ps(); }
+	inline Vector4Intrinsics& ToZero() { mmvalue = _mm_setzero_ps(); return *this; }
 
 	inline float Length() const { return _mm_cvtss_f32(_mm_sqrt_ss(_mm_dp_ps(mmvalue, mmvalue, 0xF1))); }
 	//R for reciprocal
@@ -62,7 +61,7 @@ class Vector4Intrinsics	{
 	inline float LengthSq() const { return _mm_cvtss_f32(_mm_dp_ps(mmvalue, mmvalue, 0xF1)); }
 
 	//TODO: can extract dot product (lengthSq) with _mm_cvtss_f32 and do a test to continue or cancel (this might save time) (might need to test for 0.00001f error margin)
-	inline void Normalize()		{ mmvalue = _mm_mul_ps(mmvalue, _mm_rsqrt_ps(_mm_dp_ps(mmvalue, mmvalue, 0xFF))); }
+	inline Vector4Intrinsics& Normalize()		{ mmvalue = _mm_mul_ps(mmvalue, _mm_rsqrt_ps(_mm_dp_ps(mmvalue, mmvalue, 0xFF))); return *this; }
 	inline Vector4Intrinsics Normal() const	{ return _mm_mul_ps(mmvalue, _mm_rsqrt_ps(_mm_dp_ps(mmvalue, mmvalue, 0xFF))); }
 
 	inline float Dot(const Vector4Intrinsics& v) const { return _mm_cvtss_f32(_mm_dp_ps(mmvalue, v.mmvalue, 0xF1)); }
@@ -72,10 +71,10 @@ class Vector4Intrinsics	{
 	inline Vector4Intrinsics operator*(float v) const { return _mm_mul_ps(mmvalue, _mm_set1_ps(v)); }
 	inline Vector4Intrinsics operator/(float v) const { return _mm_div_ps(mmvalue, _mm_set1_ps(v)); }
 
-	inline void operator+=(float v) { mmvalue = _mm_add_ps(mmvalue, _mm_set1_ps(v)); }
-	inline void operator-=(float v) { mmvalue = _mm_sub_ps(mmvalue, _mm_set1_ps(v)); }
-	inline void operator*=(float v) { mmvalue = _mm_mul_ps(mmvalue, _mm_set1_ps(v)); }
-	inline void operator/=(float v) { mmvalue = _mm_div_ps(mmvalue, _mm_set1_ps(v)); }
+	inline Vector4Intrinsics& operator+=(float v) { mmvalue = _mm_add_ps(mmvalue, _mm_set1_ps(v)); return *this; }
+	inline Vector4Intrinsics& operator-=(float v) { mmvalue = _mm_sub_ps(mmvalue, _mm_set1_ps(v)); return *this; }
+	inline Vector4Intrinsics& operator*=(float v) { mmvalue = _mm_mul_ps(mmvalue, _mm_set1_ps(v)); return *this; }
+	inline Vector4Intrinsics& operator/=(float v) { mmvalue = _mm_div_ps(mmvalue, _mm_set1_ps(v)); return *this; }
 
 
 	inline Vector4Intrinsics operator+(const Vector4Intrinsics& v) const { return _mm_add_ps(mmvalue, v.mmvalue); }
@@ -83,10 +82,10 @@ class Vector4Intrinsics	{
 	inline Vector4Intrinsics operator*(const Vector4Intrinsics& v) const { return _mm_mul_ps(mmvalue, v.mmvalue); }
 	inline Vector4Intrinsics operator/(const Vector4Intrinsics& v) const { return _mm_div_ps(mmvalue, v.mmvalue); }
 
-	inline void operator+=(const Vector4Intrinsics& v) { mmvalue = _mm_add_ps(mmvalue, v.mmvalue); }
-	inline void operator-=(const Vector4Intrinsics& v) { mmvalue = _mm_sub_ps(mmvalue, v.mmvalue); }
-	inline void operator*=(const Vector4Intrinsics& v) { mmvalue = _mm_mul_ps(mmvalue, v.mmvalue); }
-	inline void operator/=(const Vector4Intrinsics& v) { mmvalue = _mm_div_ps(mmvalue, v.mmvalue); }
+	inline Vector4Intrinsics& operator+=(const Vector4Intrinsics& v) { mmvalue = _mm_add_ps(mmvalue, v.mmvalue); return *this; }
+	inline Vector4Intrinsics& operator-=(const Vector4Intrinsics& v) { mmvalue = _mm_sub_ps(mmvalue, v.mmvalue); return *this; }
+	inline Vector4Intrinsics& operator*=(const Vector4Intrinsics& v) { mmvalue = _mm_mul_ps(mmvalue, v.mmvalue); return *this; }
+	inline Vector4Intrinsics& operator/=(const Vector4Intrinsics& v) { mmvalue = _mm_div_ps(mmvalue, v.mmvalue); return *this; }
 
 	inline Vector4Intrinsics operator-() const { return _mm_set_ps(-w, -z, -y, -x); }
 
@@ -94,7 +93,7 @@ class Vector4Intrinsics	{
 	inline bool	operator==(const Vector4Intrinsics& v) const { return _mm_movemask_ps(_mm_cmpneq_ps(mmvalue, v.mmvalue)) == 0; }
 	inline bool	operator!=(const Vector4Intrinsics& v) const { return _mm_movemask_ps(_mm_cmpneq_ps(mmvalue, v.mmvalue)) != 0; }
 
-	MEM_ALIGN_NEW_DELETE
+	CACHE_ALIGN_NEW_DELETE
 
 	static const Vector4Intrinsics ZEROS;
 	static const Vector4Intrinsics ONES;
@@ -108,4 +107,3 @@ inline Vector4Intrinsics operator+(float f, const Vector4Intrinsics& v) { return
 inline Vector4Intrinsics operator-(float f, const Vector4Intrinsics& v) { return Vector4Intrinsics(_mm_set1_ps(f)) - v; }
 inline Vector4Intrinsics operator*(float f, const Vector4Intrinsics& v) { return v * f; }
 inline Vector4Intrinsics operator/(float f, const Vector4Intrinsics& v) { return Vector4Intrinsics(_mm_set1_ps(f)) / v; }
-#endif

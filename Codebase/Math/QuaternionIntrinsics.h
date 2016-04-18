@@ -17,7 +17,7 @@ _-_-_-_-_-_-_-|   /\_/\   NYANYANYAN
 _-_-_-_-_-_-_-""  ""
 
 *//////////////////////////////////////////////////////////////////////////////
-#ifndef ORBIS
+
 #pragma once
 
 #include <iostream>
@@ -28,7 +28,7 @@ _-_-_-_-_-_-_-""  ""
 
 class Matrix4Intrinsics;
 
-MEM_ALIGN
+CACHE_ALIGN
 class QuaternionIntrinsics	{
  public:
 	inline QuaternionIntrinsics() : mmvalue(_mm_set_ps(1.0f, 0, 0, 0)) {}
@@ -36,7 +36,7 @@ class QuaternionIntrinsics	{
 	inline QuaternionIntrinsics(__m128 m) : mmvalue(m) {}
 	inline QuaternionIntrinsics(const QuaternionIntrinsics& v) : mmvalue(v.mmvalue) {}
 
-	MEM_ALIGN
+	CACHE_ALIGN
 	union {
 		struct {
 			float x, y, z, w;
@@ -44,7 +44,7 @@ class QuaternionIntrinsics	{
 		__m128 mmvalue;
 	};
 
-	inline void Normalize()		{ mmvalue = _mm_mul_ps(mmvalue, _mm_rsqrt_ps(_mm_dp_ps(mmvalue, mmvalue, 0xFF))); }
+	inline QuaternionIntrinsics& Normalize()		{ mmvalue = _mm_mul_ps(mmvalue, _mm_rsqrt_ps(_mm_dp_ps(mmvalue, mmvalue, 0xFF))); return *this; }
 	inline QuaternionIntrinsics Normal() const	{ return _mm_mul_ps(mmvalue, _mm_rsqrt_ps(_mm_dp_ps(mmvalue, mmvalue, 0xFF))); }
 
 	Matrix4Intrinsics ToMatrix4() const;
@@ -88,7 +88,7 @@ class QuaternionIntrinsics	{
 		         -(x * q.x) - (y * q.y) - (z * q.z)
 		       );
 		*/
-		//This (^) is equiv to q * v, where the below is equiv to v * q (needed for physics)
+		//This (^) is equiv to q * b, where the below is equiv to b * q (needed for physics)
 		return QuaternionIntrinsics(
 		         (w * v.x) + (v.y * z) - (v.z * y),
 		         (w * v.y) + (v.z * x) - (v.x * z),
@@ -98,16 +98,15 @@ class QuaternionIntrinsics	{
 	}
 
 	inline QuaternionIntrinsics operator+(const QuaternionIntrinsics& a) const {
-		return _mm_add_ps(mmvalue, a.mmvalue);
+		return QuaternionIntrinsics(x + a.x, y + a.y, z + a.z, w + a.w);
 	}
 
 	QuaternionIntrinsics Interpolate(const QuaternionIntrinsics& pStart, const QuaternionIntrinsics& pEnd, float pFactor);
 
 
-	MEM_ALIGN_NEW_DELETE
+	CACHE_ALIGN_NEW_DELETE
 
 	inline friend std::ostream& operator<<(std::ostream& o, const QuaternionIntrinsics& q) {
 		return o << "Quat(" << q.x << "," << q.y << "," << q.z <<  "," << q.w << ")" << LINE_SEPARATOR;
 	}
 };
-#endif

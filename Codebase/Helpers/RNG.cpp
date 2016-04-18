@@ -11,8 +11,7 @@
 RNG32 RNG32::Rand = RNG32(RNG32::RandSeed());
 RNG64 RNG64::Rand = RNG64(RNG64::RandSeed());
 
-uint32_t RNG32::RandSeed()
-{
+uint32_t RNG32::RandSeed() {
 #if SUPPORT_STD_RANDOM_DEVICE
 	std::random_device randDevice;
 	return randDevice();
@@ -25,8 +24,7 @@ uint32_t RNG32::RandSeed()
 }
 
 
-uint64_t RNG64::RandSeed()
-{
+uint64_t RNG64::RandSeed() {
 #if SUPPORT_STD_RANDOM_DEVICE
 	std::random_device randDevice;
 	uint64_t value = randDevice();

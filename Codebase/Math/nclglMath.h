@@ -7,14 +7,12 @@
 #include "Matrix3Simple.h"
 #include "Matrix4Simple.h"
 
-#ifndef ORBIS
 #include "Vector3Intrinsics.h"
 #include "Vector3_1Intrinsics.h"
 #include "Vector4Intrinsics.h"
 #include "QuaternionIntrinsics.h"
 #include "Matrix3Intrinsics.h"
 #include "Matrix4Intrinsics.h"
-#endif
 
 //#define Qat QuaternionSimple
 //#define QatGraphycs QuaternionSimple
@@ -41,7 +39,7 @@
 //#define Mat4Physics Matrix4Simple
 
 
-typedef QuaternionSimple Quaternion;
+typedef QuaternionSimple Quat;
 typedef QuaternionSimple QuatGraphics;
 typedef QuaternionSimple QuatPhysics;
 

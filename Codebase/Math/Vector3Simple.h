@@ -21,7 +21,7 @@ class Vector3Simple	{
 	inline Vector3Simple() { ToZero(); }
 	inline Vector3Simple(float x, float y, float z) : x(x), y(y), z(z) { }
 
-	//Vector3Simple(const Vector3_1Intrinsics& vec);
+	Vector3Simple(const Vector3_1Intrinsics& vec);
 
 	float x;
 	float y;
@@ -54,7 +54,7 @@ class Vector3Simple	{
 	inline Vector3Simple  operator+(const Vector3Simple&  a) const { return Vector3Simple(x + a.x,y + a.y, z + a.z); }
 	inline Vector3Simple  operator-(const Vector3Simple&  a) const { return Vector3Simple(x - a.x,y - a.y, z - a.z); }
 	inline Vector3Simple  operator*(const Vector3Simple&  a) const { return Vector3Simple(x * a.x,y * a.y, z * a.z); }
-	inline Vector3Simple  operator/(const Vector3Simple&  a) const { return Vector3Simple(x / a.x,y / a.y, z / a.z); }
+	inline Vector3Simple  operator/(const Vector3Simple&  a) const { return Vector3Simple(x / a.x,y / a.y, z / a.z); };
 
 
 	inline Vector3Simple& operator+=(const Vector3Simple&  a) { x += a.x; y += a.y; z += a.z; return *this; }
@@ -68,12 +68,12 @@ class Vector3Simple	{
 
 
 	inline Vector3Simple  operator*(const float a) const { return Vector3Simple(x * a,y * a, z * a); }
-	inline Vector3Simple  operator/(const float v) const { return Vector3Simple(x / v,y / v, z / v); }
+	inline Vector3Simple  operator/(const float v) const { return Vector3Simple(x / v,y / v, z / v); };
 
 	inline Vector3Simple operator-() const { return Vector3Simple(-x, -y, -z); }
 
-	inline bool	operator==(const Vector3Simple& A)const {return (A.x == x && A.y == y && A.z == z) ? true : false;}
-	inline bool	operator!=(const Vector3Simple& A)const {return (A.x == x && A.y == y && A.z == z) ? false : true;}
+	inline bool	operator==(const Vector3Simple& A)const {return (A.x == x && A.y == y && A.z == z) ? true : false;};
+	inline bool	operator!=(const Vector3Simple& A)const {return (A.x == x && A.y == y && A.z == z) ? false : true;};
 
 
 	static const Vector3Simple ZEROS;

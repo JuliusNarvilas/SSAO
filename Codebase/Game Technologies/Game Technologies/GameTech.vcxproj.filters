@@ -15,81 +15,75 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Matrix3Intrinsics.cpp">
+    <ClCompile Include="GameEntity.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Matrix4Intrinsics.cpp">
+    <ClCompile Include="PhysicsNode.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="QuaternionIntrinsics.cpp">
+    <ClCompile Include="PhysicsSystem.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Matrix3Simple.cpp">
+    <ClCompile Include="Renderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Matrix4Simple.cpp">
+    <ClCompile Include="MyGame.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Vector4Intrinsics.cpp">
+    <ClCompile Include="GameClass.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Vector4Simple.cpp">
+    <ClCompile Include="Main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="QuaternionSimple.cpp">
+    <ClCompile Include="Spring.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Vector3Simple.cpp">
+    <ClCompile Include="CollisionHelper.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Vector3Intrinsics.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Vector3_1Intrinsics.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Vector2Simple.cpp">
+    <ClCompile Include="SpringDemo.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Matrix4Intrinsics.h">
+    <ClInclude Include="GameEntity.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="QuaternionIntrinsics.h">
+    <ClInclude Include="PhysicsNode.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Vector3_1Intrinsics.h">
+    <ClInclude Include="PhysicsSystem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Vector3Intrinsics.h">
+    <ClInclude Include="Renderer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Vector4Intrinsics.h">
+    <ClInclude Include="MyGame.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="nclglMath.h">
+    <ClInclude Include="GameClass.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Matrix3Simple.h">
+    <ClInclude Include="Spring.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Matrix4Simple.h">
+    <ClInclude Include="InertialMatrixHelper.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="QuaternionSimple.h">
+    <ClInclude Include="CollisionVolume.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Vector2Simple.h">
+    <ClInclude Include="CollisionHelper.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Vector3Simple.h">
+    <ClInclude Include="SpringDemo.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Vector4Simple.h">
+    <ClInclude Include="Constraint.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Matrix3Intrinsics.h">
+    <ClInclude Include="DebugDrawer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

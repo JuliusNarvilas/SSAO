@@ -1,88 +1,129 @@
+/******************************************************************************
+Author:Rich Davison
+Description: Some random variables and functions, for lack of a better place
+to put them.
+
+-_-_-_-_-_-_-_,------,
+_-_-_-_-_-_-_-|   /\_/\   NYANYANYAN
+-_-_-_-_-_-_-~|__( ^ .^) /
+_-_-_-_-_-_-_-""  ""
+
+*//////////////////////////////////////////////////////////////////////////////
+
 #pragma once
 
+#define WEEK_2_CODE
+#define USE_MD5MESH
+//#define WEEK_3_CODE
+
+#include <xmmintrin.h>
 #include <string>
 #include <algorithm>
-#include <smmintrin.h>
-#include <sstream>
-
-/** @defgroup Helpers Helpers
-*  Collection of helpful functionality.
-*  @{
-*/
-
-/*
-MEM_ALIGN
-struct {
-	union {
-		struct {
-			float x;
-			float y;
-			float z;
-		};
-		__m128 mmvalue;
-	};
-};
-*/
+#include <functional>
+#include <vector>
 
 /// <summary>
 /// Macro for calling methods with function pointers.
 /// </summary>
 #define CALL_MEMBER_FN(instance, ptrToMemberFn)  ((instance).*(ptrToMemberFn))
 
-struct DebugResources
-{
-	static std::stringstream g_DebugStream;
-};
-
-#define CLEAR_DEBUG_STREAM() DebugResources::g_DebugStream.str(""); DebugResources::g_DebugStream.clear()
-#define GET_DEBUG_STREAM() DebugResources::g_DebugStream
-
-
 template <typename T>
-inline T Squared(T v)
-{
-	return v * v;
-}
+inline T Squared(T v) { return v * v; }
 
-/// <summary>
-/// Empty string.
-/// </summary>
-static const std::string EMPTY_STR = "";
-/// <summary>
-/// Empty string.
-/// </summary>
-static const char* const EMPTY_CHAR_ARRAY = EMPTY_STR.c_str();
+typedef unsigned int uint;
+typedef unsigned char uchar;
 
-#ifdef _WIN32
-#define LINE_SEPARATOR_DEF "\r\n"
-#elif __APPLE__
-#define LINE_SEPARATOR_DEF "\r"
-#else
-#define LINE_SEPARATOR_DEF "\n"
-#endif
+#define CACHE_LINE 16
+
+#define CACHE_ALIGN __declspec(align(CACHE_LINE))
+
+#define CACHE_ALIGN_NEW \
+	inline void* operator new	(size_t size) { return _aligned_malloc(size, CACHE_LINE); } \
+	inline void* operator new[]	(size_t size) { return _aligned_malloc(size, CACHE_LINE); }
+
+#define CACHE_ALIGN_DELETE \
+	inline void operator delete	(void* p) { _aligned_free(p); } \
+	inline void operator delete[](void* p) { _aligned_free(p); }
+
+#define CACHE_ALIGN_NEW_DELETE \
+	CACHE_ALIGN_NEW \
+	CACHE_ALIGN_DELETE
+
+
+CACHE_ALIGN
+struct __m128Converter {
+	union {
+		struct {
+			float x, y, z, w;
+		};
+		__m128 mmvalue;
+	};
+};
 
 /// <summary>
 /// Platform specific line separation string.
 /// </summary>
-static const std::string LINE_SEPARATOR_STR = LINE_SEPARATOR_DEF;
+static const std::string LINE_SEPARATOR_STR =
+#ifdef _WIN32
+  "\r\n";
+#elif __APPLE__
+  "\r";
+#else
+  "\n";
+#endif
 
 /// <summary>
 /// Platform specific line separation character array.
 /// </summary>
-static const char* const LINE_SEPARATOR =	LINE_SEPARATOR_STR.c_str();
+static const char* LINE_SEPARATOR =	LINE_SEPARATOR_STR.c_str();
 
 
-template <typename T>
-/// <summary>
-/// Helper function for clamping values.
-/// </summary>
-/// <param name="in">Input.</param>
-/// <param name="min">Min value.</param>
-/// <param name="max">Max value.</param>
-/// <returns>Clamped value.</returns>
-T ClampValues(T in, T min, T max)
-{
-	return std::min(std::max(in, min), max);
+template<typename T>
+void SwapErase(std::vector<T>& v, size_t inx) {
+	std::swap(v[inx], v.back());
+	v.pop_back();
 }
 
-/** @} */
+template<typename T>
+void SwapErase(std::vector<T>& v, const T& val) {
+	std::swap(val, v.back());
+	v.pop_back();
+}
+
+template<typename T>
+bool FindSwapErase(std::vector<T>& v, const T& val) {
+	std::vector<T>::iterator it = std::find(v.begin(), v.end(), val);
+	if (it != v.end()) {
+		std::swap(*it, v.back());
+		v.pop_back();
+		return true;
+	}
+	return false;
+}
+
+template <typename T>
+T Clamp(T in, T low, T high) {
+	return std::min(std::max(in, low), high);
+}
+
+template <class FwdIt, class Compare>
+void InsertionSort(FwdIt first, FwdIt last, Compare cmp) {
+	if (first != last) {
+		FwdIt originalStart = first;
+		for (++first; first != last; ++first) {
+			FwdIt current = first;
+			FwdIt previous = first - 1;
+			while (current != originalStart && cmp(*current, *previous)) {
+				std::iter_swap(current, previous);
+				--current;
+			}
+		}
+	}
+}
+
+template <class FwdIt>
+void InsertionSort(FwdIt first, FwdIt last) {
+	InsertionSort(first, last, std::less<typename std::iterator_traits<FwdIt>::value_type>());
+}
+
+#include "degrees.h"

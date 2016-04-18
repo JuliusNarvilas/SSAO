@@ -1,7 +1,4 @@
-#ifndef ORBIS
 #include "QuaternionIntrinsics.h"
-#include "Helpers/degrees.h"
-#include "Helpers/common.h"
 
 const QuaternionIntrinsics QuaternionIntrinsics::EMPTY = QuaternionIntrinsics(_mm_setzero_ps());
 const QuaternionIntrinsics QuaternionIntrinsics::IDENTITY = QuaternionIntrinsics(_mm_set_ps(1.0f, 0, 0, 0));
@@ -9,23 +6,26 @@ const QuaternionIntrinsics QuaternionIntrinsics::IDENTITY = QuaternionIntrinsics
 
 Matrix4Intrinsics QuaternionIntrinsics::ToMatrix4() const {
 	__m128 multiplier2 = _mm_set1_ps(2.0f);
-	__m128 squaredTimes2 = _mm_mul_ps(_mm_mul_ps(mmvalue, mmvalue), multiplier2);
-	__m128 offset1Times2 = _mm_mul_ps(_mm_mul_ps(mmvalue, _mm_set_ps(z, y, x, w)), multiplier2);
-	__m128 offset2Times2 = _mm_mul_ps(_mm_mul_ps(mmvalue, _mm_set_ps(y, x, w, z)), multiplier2);
+	__m128Converter squaredTimes2;
+	squaredTimes2.mmvalue = _mm_mul_ps(_mm_mul_ps(mmvalue, mmvalue), multiplier2);
+	__m128Converter offset1Times2;
+	offset1Times2.mmvalue = _mm_mul_ps(_mm_mul_ps(mmvalue, _mm_set_ps(z, y, x, w)), multiplier2);
+	__m128Converter offset2Times2;
+	offset2Times2.mmvalue = _mm_mul_ps(_mm_mul_ps(mmvalue, _mm_set_ps(y, x, w, z)), multiplier2);
 
 	Matrix4Intrinsics mat;
 
-	mat.values[0] = 1 - squaredTimes2.m128_f32[1] - squaredTimes2.m128_f32[2];
-	mat.values[1] = offset1Times2.m128_f32[1] + offset1Times2.m128_f32[3];
-	mat.values[2] = offset2Times2.m128_f32[0] - offset2Times2.m128_f32[1];
+	mat.values[0] = 1 - squaredTimes2.y - squaredTimes2.z;
+	mat.values[1] = offset1Times2.y + offset1Times2.w;
+	mat.values[2] = offset2Times2.x - offset2Times2.y;
 
-	mat.values[4] = offset1Times2.m128_f32[1] - offset1Times2.m128_f32[3];
-	mat.values[5] = 1 - squaredTimes2.m128_f32[0] - squaredTimes2.m128_f32[2];
-	mat.values[6] = offset1Times2.m128_f32[2] + offset1Times2.m128_f32[0];
+	mat.values[4] = offset1Times2.y - offset1Times2.w;
+	mat.values[5] = 1 - squaredTimes2.x - squaredTimes2.z;
+	mat.values[6] = offset1Times2.z + offset1Times2.x;
 
-	mat.values[8] = offset2Times2.m128_f32[0] + offset2Times2.m128_f32[1];
-	mat.values[9] = offset1Times2.m128_f32[2] - offset1Times2.m128_f32[0];
-	mat.values[10] = 1 - squaredTimes2.m128_f32[0] - squaredTimes2.m128_f32[1];
+	mat.values[8] = offset2Times2.x + offset2Times2.y;
+	mat.values[9] = offset1Times2.z - offset1Times2.x;
+	mat.values[10] = 1 - squaredTimes2.x - squaredTimes2.y;
 
 	return mat;
 }
@@ -73,7 +73,7 @@ QuaternionIntrinsics QuaternionIntrinsics::EulerAnglesToQuaternion(float pitch, 
 
 	QuaternionIntrinsics q;
 
-	q.x = sinr * cosp * siny + cosr * sinp * cosy;
+	q.x = cosr * sinp * cosy + sinr * cosp * siny;
 	q.y = cosr * cosp * siny - sinr * sinp * cosy;
 	q.z = sinr * cosp * cosy - cosr * sinp * siny;
 	q.w = cosr * cosp * cosy + sinr * sinp * siny;
@@ -114,14 +114,17 @@ QuaternionIntrinsics QuaternionIntrinsics::FromMatrix(const Matrix4Intrinsics& m
 QuaternionIntrinsics QuaternionIntrinsics::Interpolate(const QuaternionIntrinsics& pStart, const QuaternionIntrinsics& pEnd, float pFactor)
 {
 	// calc cosine theta
-	float cosom = _mm_cvtss_f32(_mm_dp_ps(pStart.mmvalue, pEnd.mmvalue, 0x71));
+	float cosom = pStart.x * pEnd.x + pStart.y * pEnd.y + pStart.z * pEnd.z + pStart.w * pEnd.w;
 
 	// adjust signs (if necessary)
 	QuaternionIntrinsics end = pEnd;
 	if (cosom < 0.0f)
 	{
-		end.mmvalue = _mm_mul_ps(end.mmvalue, _mm_set1_ps(-1.0f));
 		cosom = -cosom;
+		end.x = -end.x;   // Reverse all signs
+		end.y = -end.y;
+		end.z = -end.z;
+		end.w = -end.w;
 	}
 
 	// Calculate coefficients
@@ -142,6 +145,11 @@ QuaternionIntrinsics QuaternionIntrinsics::Interpolate(const QuaternionIntrinsic
 		sclq = pFactor;
 	}
 
-	return _mm_add_ps(_mm_mul_ps(_mm_set1_ps(sclp), pStart.mmvalue), _mm_mul_ps(_mm_set1_ps(sclq), end.mmvalue));
+	QuaternionIntrinsics out;
+	out.x = sclp * pStart.x + sclq * end.x;
+	out.y = sclp * pStart.y + sclq * end.y;
+	out.z = sclp * pStart.z + sclq * end.z;
+	out.w = sclp * pStart.w + sclq * end.w;
+
+	return out;
 }
-#endif

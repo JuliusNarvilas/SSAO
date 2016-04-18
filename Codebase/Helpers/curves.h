@@ -1,21 +1,16 @@
 #pragma once
 
-/** @ingroup Helpers
-*  @{
-*/
-
 ////http://www.cplusplus.com/forum/beginner/63025/
 ////http://people.sc.fsu.edu/~jburkardt/cpp_src/hermite_cubic/hermite_cubic.html
 ////https://mrl.nyu.edu/~perlin/courses/spring2008/splines1.html
-static float bezierCurve(float start, float control, float end, float progress)
-{
+
+static inline float bezierCurve(float start, float control, float end, float progress) {
 	return ((1 - progress) * (1 - progress) * start) +
 	       (2 * (1 - progress) * progress * control) +
 	       (progress * progress * end);
 }
 
-static float bezierCurve(float start, float control1, float control2, float end, float progress)
-{
+static inline float bezierCurve(float start, float control1, float control2, float end, float progress) {
 	float oneMinusProgress = 1.0f - progress;
 	float progressPow2 = progress * progress;
 	float oneMinusProgressPow2 = oneMinusProgress * oneMinusProgress;
@@ -26,22 +21,19 @@ static float bezierCurve(float start, float control1, float control2, float end,
 	       ((progressPow2 * progress) * end);
 };
 
-static float bezierCurveDerivative(float start, float control1, float end, float progress)
-{
+static inline float bezierCurveDerivative(float start, float control1, float end, float progress) {
 	return (2 * (1 - progress) * (control1 - start)) +
 	       (2 * progress * (end - control1));
 };
 
-static float bezierCurveDerivative(float start, float control1, float control2, float end, float progress)
-{
+static inline float bezierCurveDerivative(float start, float control1, float control2, float end, float progress) {
 	return (3 * (1 - progress) * (1 - progress) * (control1 - start)) +
 	       (6 * (1 - progress) * progress * (control2 - control1)) +
 	       (3 * progress * progress * (end - control2));
 };
 
 
-static float hermiteCurve(float start, float control1, float control2, float end, float progress)
-{
+static inline float hermiteCurve(float start, float control1, float control2, float end, float progress) {
 	float progressPow2 = progress * progress;
 	float progressPow3MinusPow2 = progressPow2 * progress - progressPow2;
 
@@ -51,8 +43,7 @@ static float hermiteCurve(float start, float control1, float control2, float end
 	       ((-3.0f * progressPow3MinusPow2 + progressPow2) * end);
 }
 
-static float hermiteCurveUsingTangents(float start, float tangent1, float tangent2, float end, float progress)
-{
+static inline float hermiteCurveUsingTangents(float start, float tangent1, float tangent2, float end, float progress) {
 	float progressPow2 = progress * progress;
 	float progressPow3MinusPow2 = (progressPow2 * progress) - progressPow2;
 
@@ -62,8 +53,7 @@ static float hermiteCurveUsingTangents(float start, float tangent1, float tangen
 	       end * (-2.0f * progressPow3MinusPow2 + progressPow2);
 }
 
-static float hermiteCurveDerivativeUsingTangents(float start, float tangent1, float tangent2, float end, float progress)
-{
+static inline float hermiteCurveDerivativeUsingTangents(float start, float tangent1, float tangent2, float end, float progress) {
 	float threeProgressPow2 = 3.0f * (progress * progress);
 
 	return start * (2.0f * threeProgressPow2 - (6 * progress)) +
@@ -72,5 +62,3 @@ static float hermiteCurveDerivativeUsingTangents(float start, float tangent1, fl
 	       end * (-2.0f * threeProgressPow2 + (6 * progress));
 }
 
-
-/** @} */

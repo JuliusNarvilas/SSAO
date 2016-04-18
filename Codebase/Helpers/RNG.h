@@ -3,7 +3,6 @@
 #include <random>
 #include <cstdint>
 
-/// @ingroup Helpers
 /// <summary>
 /// Random number generator for 32bit numbers.
 /// </summary>
@@ -14,7 +13,7 @@
 /// <remarks>
 /// This class uses Mersenne Twister number generator engine that produces deterministic results.
 /// The same seed can be used for several instances to produce identical number sequences and
-/// <see cref="RNG32::Discard"/> can be used to synch up instances that have generated different amount of numbers.
+/// <see cref="RNG32::discard"/> can be used to synch up instances that have generated different amount of numbers.
 /// </remarks>
 ///
 /// <example>
@@ -31,9 +30,8 @@
 /// rand(min, max);
 /// </code>
 /// </example>
-class RNG32
-{
-private:
+class RNG32 {
+ private:
 	/// <summary>
 	/// Mersenne twister number generator engine.
 	/// </summary>
@@ -44,7 +42,7 @@ private:
 	/// </summary>
 	uint64_t generationCount;
 
-public:
+ public:
 	/// <summary>
 	/// Default constructor that seeds the RNG engine with a default seed (usually 5489U).
 	/// </summary>
@@ -61,10 +59,7 @@ public:
 	/// </summary>
 	/// <param name="seed">Seed for the RNG engine.</param>
 	/// <param name="skip">The amount of numbers to skip for the RNG generator.</param>
-	inline RNG32(uint32_t seed, uint64_t skip) : generationCount(skip), engine(seed)
-	{
-		engine.discard(skip);
-	}
+	inline RNG32(uint32_t seed, uint64_t skip) : generationCount(skip), engine(seed) { engine.discard(skip); }
 
 	/// <summary>
 	/// Generate next random number in range.
@@ -72,8 +67,7 @@ public:
 	/// <param name="min">The starting value of the generating number range (inclusive).</param>
 	/// <param name="max">The ending value of the generating number range (inclusive).</param>
 	/// <returns>Next random number in range.</returns>
-	inline float operator()(float min, float max)
-	{
+	inline float operator()(float min, float max) {
 		++generationCount;
 		std::uniform_real_distribution<float> realDist(min, max);
 		return realDist(engine);
@@ -85,8 +79,7 @@ public:
 	/// <param name="min">The starting value of the generating number range (inclusive).</param>
 	/// <param name="max">The ending value of the generating number range (inclusive).</param>
 	/// <returns>Next random number in range.</returns>
-	inline int32_t operator()(int32_t min, int32_t max)
-	{
+	inline int32_t operator()(int32_t min, int32_t max) {
 		++generationCount;
 		std::uniform_int_distribution<int32_t> intDist(min, max);
 		return intDist(engine);
@@ -98,8 +91,7 @@ public:
 	/// <param name="min">The starting value of the generating number range (inclusive).</param>
 	/// <param name="max">The ending value of the generating number range (inclusive).</param>
 	/// <returns>Next random number in range.</returns>
-	inline uint32_t operator()(uint32_t min, uint32_t max)
-	{
+	inline uint32_t operator()(uint32_t min, uint32_t max) {
 		++generationCount;
 		std::uniform_int_distribution<uint32_t> uintDist(min, max);
 		return uintDist(engine);
@@ -109,8 +101,7 @@ public:
 	/// Get the indicator for how many generations the RNG engine has went through.
 	/// </summary>
 	/// <returns>Number of generations.</returns>
-	inline uint64_t GetNumbersGenerated() const
-	{
+	inline uint64_t GetNumbersGenerated() const {
 		return generationCount;
 	}
 
@@ -118,8 +109,7 @@ public:
 	/// Discards the given amount of numbers in the random number sequence.
 	/// </summary>
 	/// <param name="steps">Amount of numbers to discard.</param>
-	inline void Discard(uint64_t steps)
-	{
+	inline void Discard(uint64_t steps) {
 		engine.discard(steps);
 		generationCount += steps;
 	}
@@ -139,7 +129,6 @@ public:
 	static RNG32 Rand;
 };
 
-/// @ingroup Helpers
 /// <summary>
 /// Random number generator for 64bit numbers.
 /// </summary>
@@ -150,7 +139,7 @@ public:
 /// <remarks>
 /// This class uses Mersenne Twister number generator engine that produces deterministic results.
 /// The same seed can be used for several instances to produce identical number sequences and
-/// <see cref="RNG64::Discard"/> can be used to synch up instances that have generated different amount of numbers.
+/// <see cref="RNG64::discard"/> can be used to synch up instances that have generated different amount of numbers.
 /// </remarks>
 ///
 /// <example>
@@ -167,9 +156,8 @@ public:
 /// rand(min, max);
 /// </code>
 /// </example>
-class RNG64
-{
-private:
+class RNG64 {
+ private:
 	/// <summary>
 	/// Mersenne twister number generator engine.
 	/// </summary>
@@ -180,7 +168,7 @@ private:
 	/// </summary>
 	uint64_t generationCount;
 
-public:
+ public:
 	/// <summary>
 	/// Default constructor that seeds the RNG engine with a default seed (usually 5489U).
 	/// </summary>
@@ -197,10 +185,7 @@ public:
 	/// </summary>
 	/// <param name="seed">Seed for the RNG engine.</param>
 	/// <param name="skip">The amount of numbers to skip for the RNG generator.</param>
-	RNG64(uint64_t seed, uint64_t skip) : generationCount(skip), engine(seed)
-	{
-		engine.discard(skip);
-	}
+	RNG64(uint64_t seed, uint64_t skip) : generationCount(skip), engine(seed) { engine.discard(skip); }
 
 
 	/// <summary>
@@ -209,8 +194,7 @@ public:
 	/// <param name="min">The starting value of the generating number range (inclusive).</param>
 	/// <param name="max">The ending value of the generating number range (inclusive).</param>
 	/// <returns>Next random number in range.</returns>
-	inline double operator()(double min, double max)
-	{
+	inline double operator()(double min, double max) {
 		++generationCount;
 		std::uniform_real_distribution<double> realDist(min, max);
 		return realDist(engine);
@@ -222,8 +206,7 @@ public:
 	/// <param name="min">The starting value of the generating number range (inclusive).</param>
 	/// <param name="max">The ending value of the generating number range (inclusive).</param>
 	/// <returns>Next random number in range.</returns>
-	inline int64_t operator()(int64_t min, int64_t max)
-	{
+	inline int64_t operator()(int64_t min, int64_t max) {
 		++generationCount;
 		std::uniform_int_distribution<int64_t> intDist(min, max);
 		return intDist(engine);
@@ -235,8 +218,7 @@ public:
 	/// <param name="min">The starting value of the generating number range (inclusive).</param>
 	/// <param name="max">The ending value of the generating number range (inclusive).</param>
 	/// <returns>Next random number in range.</returns>
-	inline uint64_t operator()(uint64_t min, uint64_t max)
-	{
+	inline uint64_t operator()(uint64_t min, uint64_t max) {
 		++generationCount;
 		std::uniform_int_distribution<uint64_t> uintDist(min, max);
 		return uintDist(engine);
@@ -246,8 +228,7 @@ public:
 	/// Get the indicator for how many generations the RNG engine has went through.
 	/// </summary>
 	/// <returns>Number of generations.</returns>
-	inline uint64_t GetNumbersGenerated() const
-	{
+	inline uint64_t GetNumbersGenerated() const {
 		return generationCount;
 	}
 
@@ -255,8 +236,7 @@ public:
 	/// Discards the given amount of numbers in the random number sequence.
 	/// </summary>
 	/// <param name="steps">Amount of numbers to discard.</param>
-	inline void Discard(uint64_t steps)
-	{
+	inline void Discard(uint64_t steps) {
 		engine.discard(steps);
 		generationCount += steps;
 	}

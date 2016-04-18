@@ -1,8 +1,8 @@
 #include "Matrix3Simple.h"
 
 #include "Matrix4Simple.h"
-#include "Helpers/degrees.h"
 #include "Helpers/common.h"
+
 
 const float Matrix3Simple::EMPTY_DATA[9] = {
 	0, 0, 0,

@@ -1,4 +1,5 @@
 #pragma once
+
 #include <cassert>
 #include "Vector3Simple.h"
 

@@ -1,9 +1,12 @@
 #include "Scene.h"
 #include "CommonMeshes.h"
 #include "NCLDebug.h"
-#include "PhysicsEngine.h"
 #include <algorithm>
 #include <mutex>
+
+
+constexpr GLuint SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
+
 
 Scene::Scene(Window& window) : OGLRenderer(window) {
 	CommonMeshes::InitializeMeshes();
@@ -37,8 +40,16 @@ Scene::Scene(Window& window) : OGLRenderer(window) {
 
 	m_ScreenDTex = NULL;
 	m_ScreenCTex = NULL;
-	m_ScreenFBO = NULL;
+	memset(m_FBOs, 0, sizeof(m_FBOs));
+
+	m_DepthCubemap = NULL;
+
+	//Generate our Framebuffers
+	glGenFramebuffers(sizeof(m_FBOs) / sizeof(GLuint), m_FBOs);
+
 	BuildScreenFBO();
+
+	BuildLightFBO();
 
 	glClearColor(0.6f, 0.6f, 0.6f, 1.f);
 
@@ -80,7 +91,9 @@ Scene::~Scene() {
 
 	glDeleteTextures(1, &m_ScreenDTex);
 	glDeleteTextures(1, &m_ScreenCTex);
-	glDeleteFramebuffers(1, &m_ScreenFBO);
+	glDeleteTextures(1, &m_DepthCubemap);
+
+	glDeleteFramebuffers(sizeof(m_FBOs) / sizeof(GLuint), m_FBOs);
 
 	NCLDebug::ReleaseShaders();
 }
@@ -88,8 +101,6 @@ Scene::~Scene() {
 
 void Scene::AddGameObject(GameObject* game_object) {
 	m_RootGameObject->AddChildObject(game_object);
-	if (game_object->m_PhysicsObject)
-		PhysicsEngine::Instance()->AddPhysicsObject(game_object->m_PhysicsObject);
 	game_object->SetScene(this);
 	if (game_object->GetChildren().size() > 0)
 		for (GameObject* child : game_object->GetChildren())
@@ -104,7 +115,25 @@ GameObject* Scene::FindGameObject(const std::string& name) {
 void Scene::RenderScene() {
 	//Check to see if the window has been resized
 	if (m_ScreenTexWidth != width || m_ScreenTexHeight != height)
+	{
 		BuildScreenFBO();
+	}
+
+	// 1. first render to depth cubemap
+	glBindFramebuffer(GL_FRAMEBUFFER, m_DepthMapFBO);
+	glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+	glClear(GL_DEPTH_BUFFER_BIT);
+	//ConfigureShaderAndMatrices();
+	//RenderScene();
+
+
+	// 2. then render scene as normal with shadow mapping (using depth cubemap)
+	glBindFramebuffer(GL_FRAMEBUFFER, m_ScreenFBO);
+	glViewport(0, 0, m_ScreenTexWidth, m_ScreenTexHeight);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	ConfigureShaderAndMatrices();
+	glBindTexture(GL_TEXTURE_CUBE_MAP, m_DepthCubemap);
+	//RenderScene();
 
 
 	//Reset all varying data
@@ -244,8 +273,7 @@ void Scene::BuildScreenFBO() {
 	//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, width, height, 0, GL_RGB,)
 	glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, 2, GL_RGBA8, width, height, GL_FALSE);
 
-	//Generate our Framebuffers
-	if (!m_ScreenFBO) glGenFramebuffers(1, &m_ScreenFBO);
+	
 	glBindFramebuffer(GL_FRAMEBUFFER, m_ScreenFBO);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D_MULTISAMPLE, m_ScreenDTex, 0);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_TEXTURE_2D_MULTISAMPLE, m_ScreenDTex, 0);
@@ -263,6 +291,40 @@ void Scene::BuildScreenFBO() {
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
+void Scene::BuildLightFBO()
+{
+	glGenTextures(1, &m_DepthCubemap);
+
+	glBindTexture(GL_TEXTURE_CUBE_MAP, m_DepthCubemap);
+	for (GLuint i = 0; i < 6; ++i)
+	{
+		glTexImage2D(
+			GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
+			0,
+			GL_DEPTH_COMPONENT,
+			SHADOW_WIDTH,
+			SHADOW_HEIGHT,
+			0,
+			GL_DEPTH_COMPONENT,
+			GL_FLOAT,
+			NULL
+			);
+	}
+
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, m_DepthMapFBO);
+	glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, m_DepthCubemap, 0);
+	//this framebuffer object does not render to a color buffer.
+	glDrawBuffer(GL_NONE);
+	glReadBuffer(GL_NONE);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
 void Scene::PresentScreenFBO() {
 	glBindFramebuffer(GL_READ_FRAMEBUFFER, m_ScreenFBO);
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
@@ -271,11 +333,7 @@ void Scene::PresentScreenFBO() {
 }
 
 void Scene::UpdateWorldMatrices(GameObject* cNode, const Mat4Graphics& parentWM) {
-	PhysicsObject* physicsObj = cNode->Physics();
-	if (physicsObj)
-		cNode->m_WorldTransform = parentWM * physicsObj->GetWorldRenderTransform() * cNode->m_LocalTransform;
-	else
-		cNode->m_WorldTransform = parentWM * cNode->m_LocalTransform;
+	cNode->m_WorldTransform = parentWM * cNode->m_LocalTransform;
 
 	for (auto child : cNode->GetChildren())
 		UpdateWorldMatrices(child, cNode->m_WorldTransform);

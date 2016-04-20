@@ -5,6 +5,7 @@
 #include <ncltech\SimpleMeshObject.h>
 #include <nclgl\GameTimer.h>
 #include <sstream>
+#include <nclgl\Light.h>
 
 enum RenderMode : unsigned int {
 	NormalRenderMode,
@@ -39,4 +40,5 @@ class MyScene : public Scene {
 	unsigned int	m_RenderMode;
 	GameTimer		sceneUpdateTimer;
 	std::vector<GameObject*> m_Resources;
+	Light*			m_Light;
 };

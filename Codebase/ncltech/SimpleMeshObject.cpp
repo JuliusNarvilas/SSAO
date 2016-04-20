@@ -1,6 +1,6 @@
 #include "SimpleMeshObject.h"
 
-SimpleMeshObject::SimpleMeshObject(const std::string& name, PhysicsObject* physicsObj) :
+SimpleMeshObject::SimpleMeshObject(const std::string& name) :
 	GameObject(name, physicsObj),
 	m_DeleteMeshOnCleanup(false),
 	m_DeleteTexOnCleanup(false),

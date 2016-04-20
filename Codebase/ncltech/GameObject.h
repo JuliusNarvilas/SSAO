@@ -24,10 +24,8 @@ _-_-_-_-_-_-_-""  ""
 
 *//////////////////////////////////////////////////////////////////////////////
 #pragma once
-#include "PhysicsObject.h"
 #include <vector>
-#include "StateMachine.h"
-#include "StateMachine.h"
+#include "Math/nclglMath.h"
 
 class Scene;
 class PhysicsEngine;
@@ -47,10 +45,8 @@ protected:
 	friend class Scene;
 
 public:
-	GameObject(const std::string& name = "", PhysicsObject* physicsObj = new PhysicsObject());
+	GameObject(const std::string& name = "");
 	~GameObject();
-
-	PhysicsObject*		Physics() { return m_PhysicsObject; }
 
 	const std::string&	GetName()			{ return m_Name; }
 	std::vector<GameObject*>& GetChildren() { return m_Children; }
@@ -61,7 +57,6 @@ public:
 	GameObject*			FindGameObject(const std::string& name);
 	void				AddChildObject(GameObject* child);
 
-	void AddPhysics(PhysicsObject* physicsObj = new PhysicsObject());
 	void RemovePhysics();
 
 
@@ -83,29 +78,19 @@ public:
 	Scene* GetScene() { return m_Scene; }
 	void SetScene(Scene* scene) { m_Scene = scene; }
 
-	StateMachine* GetStateMachine() { return m_StateMachine; }
-	void SetStateMachine(StateMachine* sm) { m_StateMachine = sm; }
-
 	void Ditach();
 
 	CACHE_ALIGN_NEW_DELETE
 
 protected:
 	virtual void OnRenderObject()				{};				//Handles OpenGL calls to Render the object
-	virtual void OnUpdateObject(float dt)		{
-		if(m_StateMachine)
-			m_StateMachine->Update(dt);
-	};				//Override to handle things like AI etc on update loop
-
+	
 	bool m_IsBoundingSphere;
 
 	std::string					m_Name;
 	Scene*						m_Scene;
 	GameObject*					m_Parent;
 	std::vector<GameObject*>	m_Children;
-
-	PhysicsObject*				m_PhysicsObject;
-	StateMachine*				m_StateMachine;
 
 	float						m_BoundingRadius;	//For Frustum Culling
 };

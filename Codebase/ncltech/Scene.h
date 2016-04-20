@@ -66,6 +66,9 @@ public:
 	void			Present();
 protected:
 	void	BuildScreenFBO();
+
+	void	BuildLightFBO();
+
 	void	PresentScreenFBO();
 
 	void	UpdateWorldMatrices(GameObject* node, const Mat4Graphics& parentWM);
@@ -93,7 +96,17 @@ protected:
 	vector<FrustrumSortingObject> m_NodeList;
 
 	GLuint	m_ScreenTexWidth, m_ScreenTexHeight;
-	GLuint  m_ScreenDTex, m_ScreenCTex, m_ScreenFBO;
+	GLuint  m_ScreenDTex, m_ScreenCTex;
+	
+	union {
+		struct {
+			GLuint m_ScreenFBO;
+			GLuint m_DepthMapFBO;
+		};
+		GLuint m_FBOs[2];
+	};
+
+	GLuint m_DepthCubemap;
 
 	Vec3Physics m_AmbientColour;
 	Vec3Physics m_InvLightDirection;

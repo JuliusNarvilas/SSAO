@@ -19,9 +19,12 @@
 MyScene::MyScene(Window& window) : Scene(window) {
 	if (init == true)
 		init = InitialiseGL();
-	PhysicsEngine::Instance()->SetUpdateTimestep(1.0f / 120.0f);
+
 	UpdateWorldMatrices(m_RootGameObject, Mat4Physics::IDENTITY);
 	m_RenderMode = NormalRenderMode;
+
+	m_Light = new Light(CommonMeshes::Sphere(), false);
+	m_Light->m_transform.SetScaling(Vec3Graphics(10.0f, 10.0f, 10.0f));
 
 	//m_ProjectileTex = SOIL_load_OGL_texture(TEXTUREDIR"rocks1.jpg", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS | SOIL_FLAG_NTSC_SAFE_RGB | SOIL_FLAG_COMPRESS_TO_DXT);
 }
@@ -29,6 +32,8 @@ MyScene::MyScene(Window& window) : Scene(window) {
 MyScene::~MyScene() {
 	for (GameObject* go : m_Resources)
 		delete go;
+
+	delete m_Light;
 
 	TestCases::ReleaseResources();
 }

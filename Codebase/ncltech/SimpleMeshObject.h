@@ -20,7 +20,7 @@ that are rendered to the scene.
 class SimpleMeshObject : public GameObject
 {
 public:
-	SimpleMeshObject(const std::string& name = "", PhysicsObject* physicsObj = new PhysicsObject());
+	SimpleMeshObject(const std::string& name = "");
 	~SimpleMeshObject();
 
 	void	SetMesh(Mesh* mesh, bool deleteMeshOnCleanup);

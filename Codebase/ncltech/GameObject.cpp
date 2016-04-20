@@ -1,7 +1,7 @@
 #include "GameObject.h"
 #include "PhysicsEngine.h"
 
-GameObject::GameObject(const std::string& name, PhysicsObject* physicsObj) :
+GameObject::GameObject(const std::string& name) :
 	m_Scene(nullptr), m_Parent(nullptr), m_IsBoundingSphere(true), m_Name(name),
 	m_Scale(Vec3Physics::ONES), m_Colour(Vec4Graphics::ONES), m_BoundingRadius(1.0f) {
 

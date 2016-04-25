@@ -3,16 +3,9 @@
 #include <nclgl/OBJMesh.h>
 
 #include <ncltech\SimpleMeshObject.h>
-#include <ncltech\SphereCollisionShape.h>
-#include <ncltech\CuboidCollisionShape.h>
-#include <ncltech\PhysicsEngine.h>
 #include <ncltech\CommonMeshes.h>
-#include <ncltech\DistanceConstraint.h>
 #include <ncltech\NCLDebug.h>
-#include "ncltech\OctreeSpacePartition.h"
-#include "ncltech\PositioningState.h"
 #include "TardisGameObject.h"
-#include "ncltech/PyramidCollisionShape.h"
 #include "TestCases.h"
 
 
@@ -23,23 +16,22 @@ MyScene::MyScene(Window& window) : Scene(window) {
 	UpdateWorldMatrices(m_RootGameObject, Mat4Physics::IDENTITY);
 	m_RenderMode = NormalRenderMode;
 
-	m_Light = new Light(CommonMeshes::Sphere(), false);
-	m_Light->m_transform.SetScaling(Vec3Graphics(10.0f, 10.0f, 10.0f));
-
 	//m_ProjectileTex = SOIL_load_OGL_texture(TEXTUREDIR"rocks1.jpg", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS | SOIL_FLAG_NTSC_SAFE_RGB | SOIL_FLAG_COMPRESS_TO_DXT);
+
+	m_Light->scale = 50;
+	m_Light->position = Vec3Graphics(10, 25, 5);
 }
 
 MyScene::~MyScene() {
 	for (GameObject* go : m_Resources)
 		delete go;
 
-	delete m_Light;
-
 	TestCases::ReleaseResources();
 }
 
 bool MyScene::InitialiseGL() {
-	m_Camera->SetPosition(Vec3Physics(-6.25f, 2.0f, 10.0f));
+	m_Camera->SetPosition(Vec3Physics(-6.25f, 60.0f, 10.0f));
+	m_Camera->SetPitch(-70.0f);
 
 	//Create Ground
 	SimpleMeshObject* ground = new SimpleMeshObject("Ground");
@@ -69,18 +61,9 @@ bool MyScene::InitialiseGL() {
 	return true;
 }
 
-//Scene* MyScene::GetNextScene(Window& window) {
-//	return new EndScene(window);;
-//}
-
-void MyScene::Cleanup() {
-	for (GameObject* go : m_Resources)
-		go->Ditach();
-}
 
 void MyScene::UpdateScene(float sec) {
 	sceneUpdateTimer.GetTimedMS();
-	std::lock_guard<std::mutex> guard(PhysicsObject::g_ExternalChanges);
 
 	Keyboard* keyboard = Window::GetKeyboard();
 

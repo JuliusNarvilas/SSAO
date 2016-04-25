@@ -5,7 +5,7 @@
 #include <mutex>
 
 
-constexpr GLuint SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
+constexpr GLuint SHADOW_WIDTH = 1024 * 2, SHADOW_HEIGHT = 1024 * 2;
 
 
 Scene::Scene(Window& window) : OGLRenderer(window) {
@@ -15,28 +15,18 @@ Scene::Scene(Window& window) : OGLRenderer(window) {
 	if (!m_DebugShader->IsOperational())
 		return;
 
-	m_DefaultLightShader = new Shader(SHADERDIR"TechVertex.glsl", SHADERDIR"TechLightFragment.glsl");
-	if (!m_DefaultLightShader->IsOperational())
-		return;
+	m_ShadowDepthCubemapShader = new Shader(SHADERDIR"DepthCubemapVert.glsl", SHADERDIR"DepthCubemapFrag.glsl", SHADERDIR"DepthCubemapGeo.glsl");
+	assert(m_ShadowDepthCubemapShader->IsOperational());
 
-	m_DefaultShadowShader = new Shader(SHADERDIR"TechVertex.glsl", SHADERDIR"TechShadowFragment.glsl");
-	if (!m_DefaultShadowShader->IsOperational())
-		return;
-
-	m_ShadowVolumeShader = new Shader(SHADERDIR"TechVertex.glsl", SHADERDIR"PassThroughFragment.glsl", SHADERDIR"ShadowVolumeGeometry.glsl");
-	if (!m_ShadowVolumeShader->IsOperational())
-		return;
-
+	m_SceneShader = new Shader(SHADERDIR"TestVert.glsl", SHADERDIR"TestFrag.glsl");
+	assert(m_SceneShader->IsOperational());
 
 	m_Camera = new Camera();
 	m_RootGameObject = new GameObject();
 	m_RootGameObject->m_Scene = this;
 
 	m_AmbientColour = Vec3Physics(0.2f, 0.2f, 0.2f);
-	m_InvLightDirection = Vec3Physics(0.5f, 1.0f, -0.8f);
 	m_SpecularIntensity = 128.0f;
-
-	m_InvLightDirection.Normalize();
 
 	m_ScreenDTex = NULL;
 	m_ScreenCTex = NULL;
@@ -59,25 +49,12 @@ Scene::Scene(Window& window) : OGLRenderer(window) {
 	m_EndScene = false;
 
 	projMatrix = Mat4Graphics::Perspective(0.01f, 1000.0f, (float)width / (float)height, 45.0f);
+
+	m_Light = new Light(CommonMeshes::Sphere(), false);
 }
 
 Scene::~Scene() {
 	CommonMeshes::ReleaseMeshes();
-
-	if (m_DefaultLightShader) {
-		delete m_DefaultLightShader;
-		m_DefaultLightShader = NULL;
-	}
-
-	if (m_DefaultShadowShader) {
-		delete m_DefaultShadowShader;
-		m_DefaultShadowShader = NULL;
-	}
-
-	if (m_ShadowVolumeShader) {
-		delete m_ShadowVolumeShader;
-		m_ShadowVolumeShader = NULL;
-	}
 
 	if (m_Camera) {
 		delete m_Camera;
@@ -87,6 +64,24 @@ Scene::~Scene() {
 	if (m_RootGameObject) {
 		delete m_RootGameObject;
 		m_RootGameObject = NULL;
+	}
+
+	if (m_ShadowDepthCubemapShader)
+	{
+		delete m_ShadowDepthCubemapShader;
+		m_ShadowDepthCubemapShader = NULL;
+	}
+
+	if (m_SceneShader)
+	{
+		delete m_SceneShader;
+		m_SceneShader = NULL;
+	}
+
+	if (m_Light)
+	{
+		delete m_Light;
+		m_Light = NULL;
 	}
 
 	glDeleteTextures(1, &m_ScreenDTex);
@@ -119,110 +114,77 @@ void Scene::RenderScene() {
 		BuildScreenFBO();
 	}
 
-	// 1. first render to depth cubemap
-	glBindFramebuffer(GL_FRAMEBUFFER, m_DepthMapFBO);
-	glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
-	glClear(GL_DEPTH_BUFFER_BIT);
-	//ConfigureShaderAndMatrices();
-	//RenderScene();
+	RenderLightMaps();
+
+	glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_LEQUAL);
+	glEnable(GL_CULL_FACE);
+	glCullFace(GL_BACK);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 
 	// 2. then render scene as normal with shadow mapping (using depth cubemap)
 	glBindFramebuffer(GL_FRAMEBUFFER, m_ScreenFBO);
 	glViewport(0, 0, m_ScreenTexWidth, m_ScreenTexHeight);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	ConfigureShaderAndMatrices();
-	glBindTexture(GL_TEXTURE_CUBE_MAP, m_DepthCubemap);
-	//RenderScene();
 
-
-	//Reset all varying data
-	textureMatrix.ToIdentity();
-	modelMatrix.ToIdentity();
+	SetCurrentShader(m_SceneShader);
 	viewMatrix = m_Camera->BuildViewMatrix();
 	m_FrameFrustum.FromMatrix(projMatrix * viewMatrix);
+	UpdateShaderMatrices();
+	glBindTexture(GL_TEXTURE_CUBE_MAP, m_DepthCubemap);
 
-	{
-		std::lock_guard<std::mutex> guard(PhysicsEngine::g_RenderTransformMutex);
-		//Update all Object's World Transform
-		UpdateWorldMatrices(m_RootGameObject, Mat4Physics::IDENTITY);
-	}
+	UpdateWorldMatrices(m_RootGameObject, Mat4Physics::IDENTITY);
+	BuildNodeLists(m_RootGameObject);
+	SortNodeLists();
 
+	DrawNodes();
+	DrawTransparentNodes();
+
+	Mat4Graphics lightTransform = Mat4Graphics::Translation(m_Light->position);// *Mat4Graphics::Scale(Vec3Graphics(m_Light->scale, m_Light->scale, m_Light->scale));
+
+	glUniformMatrix4fv(glGetUniformLocation(currentShader->GetProgram(), "modelMatrix"), 1, false, (float*)&lightTransform);
+	glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "lightPos"), 1, (float*)&m_Light->position);
+	glUniform1f(glGetUniformLocation(currentShader->GetProgram(), "far_plane"), m_Light->scale);
+	glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "viewPos"), 1, (float*)&m_Camera->GetPosition());
+	m_Light->mesh->Draw();
+
+
+
+	/*
 	//Setup Default Shader Uniforms
 	Vec3Physics camPos = m_Camera->GetPosition();
-	Vec3Physics lightPos = m_InvLightDirection * -100.0f;
+	Vec3Physics lightPos;
 	Vec4Physics lightPosEyeSpace = viewMatrix * Vec4Physics(lightPos.x, lightPos.y, lightPos.z, 1.0f);
 
-	SetCurrentShader(m_DefaultLightShader);
+	SetCurrentShader(m_SceneShader);
 	UpdateShaderMatrices();
 	glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "diffuseTex"), 0);
 	glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "ambientColour"), 1, &m_AmbientColour.x);
-	glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "invLightDir"), 1, &m_InvLightDirection.x);
+	//glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "invLightDir"), 1, &m_InvLightDirection.x);
 	glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "cameraPos"), 1, &camPos.x);
 	glUniform1f(glGetUniformLocation(currentShader->GetProgram(), "specularIntensity"), m_SpecularIntensity);
-
-	SetCurrentShader(m_DefaultShadowShader);
-	UpdateShaderMatrices();
-	glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "diffuseTex"), 0);
-	glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "ambientColour"), 1, &m_AmbientColour.x);
-
-	SetCurrentShader(m_ShadowVolumeShader);
-	UpdateShaderMatrices();
-	glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "invLightDir"), 1, &m_InvLightDirection.x);
 
 
 	//Setup Render FBO/OpenGL States
 	glBindFramebuffer(GL_FRAMEBUFFER, m_ScreenFBO);
-	glStencilFunc(GL_ALWAYS, 0, 0xFF);
-	glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
-
-	glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-	glEnable(GL_MULTISAMPLE);
+	glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+	//glEnable(GL_MULTISAMPLE);
 	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_DEPTH_CLAMP);
-	glEnable(GL_STENCIL_TEST);
 	glEnable(GL_CULL_FACE);
 	glEnable(GL_BLEND);
 	glDepthFunc(GL_LEQUAL);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-	//Build Render List
-	BuildNodeLists(m_RootGameObject);
-	SortNodeLists();
-
-	//Render the Scene in the Dark (As if it were a shadow)
-	SetCurrentShader(m_DefaultShadowShader);
-	DrawNodes();
-
-	//Render the Shadow Volumes to the Stencil Buffer
-	SetCurrentShader(m_ShadowVolumeShader);
-	glDepthFunc(GL_LESS);
-	glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-	glDepthMask(GL_FALSE);
-
-	glStencilFunc(GL_ALWAYS, 0, 0xFF);
-	glStencilOpSeparate(GL_FRONT, GL_KEEP, GL_INCR_WRAP, GL_KEEP);
-	glStencilOpSeparate(GL_BACK, GL_KEEP, GL_DECR_WRAP, GL_KEEP);
-
-	glDisable(GL_CULL_FACE);
-	DrawNodes();
-	for (auto node : m_TransparentNodeList)
-		DrawNode(node.target);
-
-	glEnable(GL_CULL_FACE);
-
-
+	
 	//Finally Render the Light Sections of the scene where the shadow volumes overlapped
 	glDepthFunc(GL_LEQUAL);
-	glStencilFunc(GL_EQUAL, 0, 0xFF);
-	glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
-	glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-	glDepthMask(GL_TRUE);
-
-	SetCurrentShader(m_DefaultLightShader);
+	//glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 	DrawNodes();
-	glStencilFunc(GL_ALWAYS, 0, 0xFF);
 	DrawTransparentNodes();
+	*/
+
 
 	//Clear Render List
 	ClearNodeLists();
@@ -245,7 +207,6 @@ void Scene::Present() {
 void Scene::RenderDebug() {
 	NCLDebug::SetDebugDrawData(projMatrix * viewMatrix, m_Camera->GetPosition());
 	glDisable(GL_DEPTH_TEST);
-	glStencilFunc(GL_ALWAYS, 0, 0xFF);
 
 	NCLDebug::SortDebugLists();
 	NCLDebug::DrawDebugLists();
@@ -254,7 +215,7 @@ void Scene::RenderDebug() {
 
 void Scene::UpdateScene(float dt) {
 	m_Camera->UpdateCamera(dt * 1000.f);
-	UpdateNode(dt, m_RootGameObject);
+	m_Light->UpdateLight(dt * 1000.0f);
 }
 
 
@@ -265,7 +226,7 @@ void Scene::BuildScreenFBO() {
 	//Generate our Scene Depth Texture
 	if (!m_ScreenDTex) glGenTextures(1, &m_ScreenDTex);
 	glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, m_ScreenDTex);
-	glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, 2, GL_DEPTH24_STENCIL8, width, height, GL_FALSE);
+	glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, 2, GL_DEPTH_COMPONENT32, width, height, GL_FALSE);
 
 	//Generate our Scene Colour Texture
 	if (!m_ScreenCTex) glGenTextures(1, &m_ScreenCTex);
@@ -276,7 +237,6 @@ void Scene::BuildScreenFBO() {
 	
 	glBindFramebuffer(GL_FRAMEBUFFER, m_ScreenFBO);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D_MULTISAMPLE, m_ScreenDTex, 0);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_TEXTURE_2D_MULTISAMPLE, m_ScreenDTex, 0);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, m_ScreenCTex, 0);
 
 	//Validate our framebuffer
@@ -323,6 +283,61 @@ void Scene::BuildLightFBO()
 	glDrawBuffer(GL_NONE);
 	glReadBuffer(GL_NONE);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	GLuint status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+	assert(status == GL_FRAMEBUFFER_COMPLETE && m_DepthCubemap);
+}
+
+void Scene::RenderLightMaps()
+{
+	// 1. first render to depth cubemap
+	glBindFramebuffer(GL_FRAMEBUFFER, m_DepthMapFBO);
+	glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+	glClear(GL_DEPTH_BUFFER_BIT);
+	glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_LEQUAL);
+	glEnable(GL_CULL_FACE);
+	glCullFace(GL_BACK);
+
+	SetCurrentShader(m_ShadowDepthCubemapShader);
+	//camera view and proj are not valid
+	//UpdateShaderMatrices();
+
+	float aspect = (float)SHADOW_WIDTH / (float)SHADOW_HEIGHT;
+	float nearPlane = 1.0f;
+	float farPlane = m_Light->scale;
+	Mat4Graphics shadowProj = Mat4Graphics::Perspective(nearPlane, farPlane, aspect, 90.0f);
+
+	Mat4Graphics shadowTransforms[6];
+
+	Vec3Graphics lightPos = m_Light->position;
+
+	shadowTransforms[0] = shadowProj *
+		Mat4Graphics::View(lightPos, lightPos + Vec3Graphics(1.0f, 0.0f, 0.0f), Vec3Graphics(0.0, -1.0, 0.0));
+
+	shadowTransforms[1] = shadowProj *
+		Mat4Graphics::View(lightPos, lightPos + Vec3Graphics(-1.0f, 0.0f, 0.0f), Vec3Graphics(0.0, -1.0, 0.0));
+
+	shadowTransforms[2] = shadowProj *
+		Mat4Graphics::View(lightPos, lightPos + Vec3Graphics(0.0f, 1.0f, 0.0f), Vec3Graphics(0.0, 0.0, 1.0));
+
+	shadowTransforms[3] = shadowProj *
+		Mat4Graphics::View(lightPos, lightPos + Vec3Graphics(0.0f, -1.0f, 0.0f), Vec3Graphics(0.0, 0.0, -1.0));
+
+	shadowTransforms[4] = shadowProj *
+		Mat4Graphics::View(lightPos, lightPos + Vec3Graphics(0.0f, 0.0f, 1.0f), Vec3Graphics(0.0, -1.0, 0.0));
+
+	shadowTransforms[5] = shadowProj *
+		Mat4Graphics::View(lightPos, lightPos + Vec3Graphics(0.0f, 0.0f, -1.0f), Vec3Graphics(0.0, -1.0, 0.0));
+
+	glUniformMatrix4fv(glGetUniformLocation(currentShader->GetProgram(), "shadowMatrices"), 6, false, (float*)&shadowTransforms);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, m_DepthCubemap);
+
+	//Send uniforms !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+	DrawAllNodes();
 }
 
 void Scene::PresentScreenFBO() {
@@ -340,11 +355,7 @@ void Scene::UpdateWorldMatrices(GameObject* cNode, const Mat4Graphics& parentWM)
 }
 
 void Scene::BuildNodeLists(GameObject* cNode) {
-	Vec3Physics obj_pos;
-	if (cNode->Physics())
-		obj_pos = cNode->Physics()->GetPosition();
-	else
-		obj_pos = cNode->m_WorldTransform.GetTranslation();
+	Vec3Physics obj_pos = cNode->m_WorldTransform.GetTranslation();
 
 	Vec3Physics direction = obj_pos - m_Camera->GetPosition();
 
@@ -383,24 +394,32 @@ void Scene::DrawTransparentNodes()
 {
 	for (auto node : m_TransparentNodeList)
 	{
-		glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-		DrawNode(node.target);
-		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 		DrawNode(node.target);
 	}
 }
 
 void Scene::DrawNode(GameObject* n) {
 	glUniformMatrix4fv(glGetUniformLocation(currentShader->GetProgram(), "modelMatrix"), 1, false, (float*) & (n->m_WorldTransform * Mat4Physics::Scale(n->GetScale())));
-	glUniform4fv(glGetUniformLocation(currentShader->GetProgram(), "nodeColour"), 1, (float*)&n->GetColour());
-
+	glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "lightPos"), 1, (float*)&m_Light->position);
+	glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "viewPos"), 1, (float*)&m_Camera->GetPosition());
+	glUniform1f(glGetUniformLocation(currentShader->GetProgram(), "far_plane"), m_Light->scale);
+	
 	n->OnRenderObject();
 }
 
+void Scene::DrawAllNodes()
+{
+	if (m_RootGameObject)
+	{
+		DrawAllNodes(m_RootGameObject);
+	}
+}
 
-void Scene::UpdateNode(float dt, GameObject* cNode) {
-	cNode->OnUpdateObject(dt);
-
-	for (auto child : cNode->GetChildren())
-		UpdateNode(dt, child);
+void Scene::DrawAllNodes(GameObject* n)
+{
+	DrawNode(n);
+	for (auto child : n->GetChildren())
+	{
+		DrawAllNodes(child);
+	}
 }

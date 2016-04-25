@@ -43,14 +43,12 @@ Mesh::~Mesh(void)	{
 	delete[]colours;
 }
 
-void Mesh::Draw(bool update)	{
-	if(update) {
+void Mesh::Draw()	{
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, texture);
 
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, bumpTexture);
-	}
 
 	glBindVertexArray(arrayObject);
 	if(bufferObject[INDEX_BUFFER])

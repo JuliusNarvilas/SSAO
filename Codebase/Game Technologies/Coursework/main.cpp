@@ -1,7 +1,6 @@
 #include <cstdio>
 #include <nclgl\Window.h>
 #include "MyScene.h"
-#include <ncltech\PhysicsEngine.h>
 #include <ncltech\NCLDebug.h>
 #include <future>
 #include "ncltech\CommonMeshes.h"

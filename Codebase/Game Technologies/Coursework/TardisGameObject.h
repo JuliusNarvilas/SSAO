@@ -14,7 +14,5 @@ public:
 
 	TardisGameObject(void);
 	~TardisGameObject(void);
-
-	void OnUpdateObject(float dt) override;
 };
 

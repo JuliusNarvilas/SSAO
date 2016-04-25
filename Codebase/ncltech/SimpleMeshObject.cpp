@@ -1,7 +1,7 @@
 #include "SimpleMeshObject.h"
 
 SimpleMeshObject::SimpleMeshObject(const std::string& name) :
-	GameObject(name, physicsObj),
+	GameObject(name),
 	m_DeleteMeshOnCleanup(false),
 	m_DeleteTexOnCleanup(false),
 	m_pMesh(NULL),

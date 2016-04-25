@@ -8,11 +8,14 @@ public:
 	Light(Mesh* mesh, bool needsCleanup = false);
 	~Light();
 
-	Mat4Graphics m_transform;
+	Vec3Graphics position;
+	float scale;
+	Mesh* mesh;
+
+	void UpdateLight(float msec);
 
 private:
 
-	Mesh* m_Mesh;
 	bool m_Cleanup;
 };
 

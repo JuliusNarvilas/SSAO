@@ -27,6 +27,7 @@ complicated scene.
 #include <nclgl/Camera.h>
 #include <nclgl/Shader.h>
 #include <nclgl/Frustum.h>
+#include <nclgl/Light.h>
 
 #include "TSingleton.h"
 #include "GameObject.h"
@@ -69,6 +70,8 @@ protected:
 
 	void	BuildLightFBO();
 
+	void	RenderLightMaps();
+
 	void	PresentScreenFBO();
 
 	void	UpdateWorldMatrices(GameObject* node, const Mat4Graphics& parentWM);
@@ -77,17 +80,20 @@ protected:
 	void	SortNodeLists();
 	void	ClearNodeLists();
 	void	DrawNodes();
+
+	void	DrawAllNodes(GameObject* n);
+	void	DrawAllNodes();
+
 	void	DrawTransparentNodes();
 
 	void	DrawNode(GameObject* n);
 
-	void	UpdateNode(float dt, GameObject* n);
-
 	bool				m_EndScene;
 	Camera*				m_Camera;
 	Shader*				m_DebugShader;
-	Shader			   *m_DefaultLightShader, *m_DefaultShadowShader;
-	Shader*				m_ShadowVolumeShader;
+	Shader*				m_ShadowDepthCubemapShader;
+	Shader*				m_SceneShader;
+	Light*				m_Light;
 
 	GameObject*			m_RootGameObject;
 
@@ -109,6 +115,5 @@ protected:
 	GLuint m_DepthCubemap;
 
 	Vec3Physics m_AmbientColour;
-	Vec3Physics m_InvLightDirection;
 	float   m_SpecularIntensity;
 };

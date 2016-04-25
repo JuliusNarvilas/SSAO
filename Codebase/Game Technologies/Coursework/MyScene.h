@@ -33,12 +33,10 @@ class MyScene : public Scene {
 	bool InitialiseGL()	override;
 	void RenderScene() override;
 	void UpdateScene(float dt)  override;
-	void	Cleanup() override;
 	//Scene* GetNextScene(Window& window) override;
 
  protected:
 	unsigned int	m_RenderMode;
 	GameTimer		sceneUpdateTimer;
 	std::vector<GameObject*> m_Resources;
-	Light*			m_Light;
 };

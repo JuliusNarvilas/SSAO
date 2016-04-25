@@ -78,8 +78,6 @@ public:
 	Scene* GetScene() { return m_Scene; }
 	void SetScene(Scene* scene) { m_Scene = scene; }
 
-	void Ditach();
-
 	CACHE_ALIGN_NEW_DELETE
 
 protected:

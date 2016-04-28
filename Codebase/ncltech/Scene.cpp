@@ -116,6 +116,28 @@ void Scene::RenderScene() {
 
 	RenderLightMaps();
 
+
+	///////////////////////////////////////////////////////////////////////////
+	// 1. Geometry pass: render all geometric/color data to g-buffer 
+	glBindFramebuffer(GL_FRAMEBUFFER, gBuffer);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	gBufferShader.Use();
+	for (Object obj : Objects)
+	{
+		ConfigureShaderTransformsAndUniforms();
+		obj.Draw();
+	}
+	// 2. Lighting pass: use g-buffer to calculate the scene's lighting
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glClear(GL_COLOR_BUFFER_BIT);
+	lightingPassShader.Use();
+	BindAllGBufferTextures();
+	SetLightingUniforms();
+	RenderQuad();
+
+	///////////////////////////////////////////////////////////////////////////
+
+
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LEQUAL);
 	glEnable(GL_CULL_FACE);
@@ -149,41 +171,6 @@ void Scene::RenderScene() {
 	glUniform1f(glGetUniformLocation(currentShader->GetProgram(), "far_plane"), m_Light->scale);
 	glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "viewPos"), 1, (float*)&m_Camera->GetPosition());
 	m_Light->mesh->Draw();
-
-
-
-	/*
-	//Setup Default Shader Uniforms
-	Vec3Physics camPos = m_Camera->GetPosition();
-	Vec3Physics lightPos;
-	Vec4Physics lightPosEyeSpace = viewMatrix * Vec4Physics(lightPos.x, lightPos.y, lightPos.z, 1.0f);
-
-	SetCurrentShader(m_SceneShader);
-	UpdateShaderMatrices();
-	glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "diffuseTex"), 0);
-	glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "ambientColour"), 1, &m_AmbientColour.x);
-	//glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "invLightDir"), 1, &m_InvLightDirection.x);
-	glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "cameraPos"), 1, &camPos.x);
-	glUniform1f(glGetUniformLocation(currentShader->GetProgram(), "specularIntensity"), m_SpecularIntensity);
-
-
-	//Setup Render FBO/OpenGL States
-	glBindFramebuffer(GL_FRAMEBUFFER, m_ScreenFBO);
-	glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-	//glEnable(GL_MULTISAMPLE);
-	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_CULL_FACE);
-	glEnable(GL_BLEND);
-	glDepthFunc(GL_LEQUAL);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-	
-	//Finally Render the Light Sections of the scene where the shadow volumes overlapped
-	glDepthFunc(GL_LEQUAL);
-	//glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-	DrawNodes();
-	DrawTransparentNodes();
-	*/
 
 
 	//Clear Render List
@@ -222,6 +209,50 @@ void Scene::UpdateScene(float dt) {
 void Scene::BuildScreenFBO() {
 	m_ScreenTexWidth = width;
 	m_ScreenTexHeight = height;
+
+	/////////////////////////////////////////////////////////////////////
+
+	glBindFramebuffer(GL_FRAMEBUFFER, m_ScreenFBO);
+
+	// - Position color buffer
+	glGenTextures(1, &m_ScreenPTex);
+	glBindTexture(GL_TEXTURE_2D, m_ScreenPTex);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, width, height, 0, GL_RGB, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_ScreenPTex, 0);
+
+	// - Normal color buffer
+	glGenTextures(1, &m_ScreenNTex);
+	glBindTexture(GL_TEXTURE_2D, m_ScreenNTex);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, width, height, 0, GL_RGB, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, m_ScreenNTex, 0);
+
+	// - Color + Specular color buffer
+	glGenTextures(1, &m_ScreenCTex);
+	glBindTexture(GL_TEXTURE_2D, m_ScreenCTex);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, m_ScreenCTex, 0);
+
+	// - Tell OpenGL which color attachments we'll use (of this framebuffer) for rendering 
+	GLuint attachments[3] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
+	glDrawBuffers(3, attachments);
+
+	// Then also add render buffer object as depth buffer and check for completeness.
+
+	//Generate our Scene Depth Texture
+	glGenTextures(1, &m_ScreenDTex);
+	glBindTexture(GL_TEXTURE_2D, m_ScreenDTex); //glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, m_ScreenDTex);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_ScreenDTex, 0); //glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, 2, GL_DEPTH_COMPONENT32, width, height, GL_FALSE);
+
+	/////////////////////////////////////////////////////////////////////////
 
 	//Generate our Scene Depth Texture
 	if (!m_ScreenDTex) glGenTextures(1, &m_ScreenDTex);

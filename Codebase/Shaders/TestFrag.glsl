@@ -47,13 +47,14 @@ float ShadowCalculation(vec3 fragPos, float slope)
     int loopSize = samples / earlyBreak;
     
     float diskRadius = 0.007 + viewDistance / 700.0;
-    
+    //angle factor is used to remove shadows from well light corners
+    float angleFactor = smoothstep(0.9, 1.0, slope);
     
     for(int i = 0; i < samples; ++i)
     {
-        float closestDepth = texture(depthMap, fragToLight + gridSamplingDisk[i] * diskRadius).r;
+        float closestDepth = texture(depthMap, fragToLight + gridSamplingDisk[i] * diskRadius * angleFactor).r;
         closestDepth *= far_plane;   // Undo mapping [0;1]
-        if(currentDepth - bias > closestDepth)
+        if((currentDepth - bias - (3 * angleFactor) ) > closestDepth)
             shadow += 1.0;
     }
     shadow /= float(samples);

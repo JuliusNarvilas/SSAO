@@ -102,7 +102,7 @@ protected:
 	vector<FrustrumSortingObject> m_NodeList;
 
 	GLuint	m_ScreenTexWidth, m_ScreenTexHeight;
-	GLuint  m_ScreenDTex, m_ScreenCTex;
+	GLuint  m_ScreenDTex, m_ScreenCTex, m_ScreenNTex, m_ScreenPTex;
 	
 	union {
 		struct {

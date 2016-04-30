@@ -66,9 +66,11 @@ public:
 	virtual void	Cleanup() {}
 	void			Present();
 protected:
-	void	BuildScreenFBO();
+	void	BuildGeometryPassFBO();
+	void	BuildLightPassFBO();
+	void	BuildFinalFBO();
 
-	void	BuildLightFBO();
+	void	BuildShadowFBO();
 
 	void	RenderLightMaps();
 
@@ -90,9 +92,13 @@ protected:
 
 	bool				m_EndScene;
 	Camera*				m_Camera;
+
 	Shader*				m_DebugShader;
-	Shader*				m_ShadowDepthCubemapShader;
-	Shader*				m_SceneShader;
+	Shader*				m_ShadowCubeShader;
+	Shader*				m_GeometryShader;
+	Shader*				m_LightShader;
+	Shader*				m_CombineShader;
+
 	Light*				m_Light;
 
 	GameObject*			m_RootGameObject;
@@ -102,17 +108,36 @@ protected:
 	vector<FrustrumSortingObject> m_NodeList;
 
 	GLuint	m_ScreenTexWidth, m_ScreenTexHeight;
-	GLuint  m_ScreenDTex, m_ScreenCTex, m_ScreenNTex, m_ScreenPTex;
+	static const int s_TextureCount = 7;
+	union
+	{
+		struct {
+			GLuint m_GeometryDepthTex;
+			GLuint m_GeometryColourTex;
+			GLuint m_GeometryNormalTex;
+
+			GLuint m_LightDiffuseTex;
+			GLuint m_LightSpecularTex;
+
+			GLuint m_FinalTex;
+
+			GLuint m_LightDepthCubeTex;
+		};
+		GLuint m_Textures[s_TextureCount];
+	};
 	
+	static const int s_FBOCount = 4;
 	union {
 		struct {
-			GLuint m_ScreenFBO;
-			GLuint m_DepthMapFBO;
+			GLuint m_GeometryPassFBO;
+			GLuint m_LightPassFBO;
+			GLuint m_ShadowFBO;
+			GLuint m_FinalFBO;
 		};
-		GLuint m_FBOs[2];
+		GLuint m_FBOs[s_FBOCount];
 	};
 
-	GLuint m_DepthCubemap;
+	Mesh*		m_ScreenQuad;
 
 	Vec3Physics m_AmbientColour;
 	float   m_SpecularIntensity;

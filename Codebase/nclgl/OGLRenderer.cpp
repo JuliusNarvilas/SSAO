@@ -190,7 +190,6 @@ to call.
 void OGLRenderer::Resize(int x, int y)	{
 	width	= max(x,1);
 	height	= max(y,1);
-	glViewport(0,0,width,height);
 }
 
 /*

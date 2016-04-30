@@ -99,7 +99,7 @@ void MyScene::RenderScene() {
 		Scene::RenderScene();
 	} else {
 		glClearColor(0.0f, 0.0f, 0.0f, 1.f);
-		glBindFramebuffer(GL_FRAMEBUFFER, m_ScreenFBO);
+		glBindFramebuffer(GL_FRAMEBUFFER, m_GeometryPassFBO);
 		viewMatrix = m_Camera->BuildViewMatrix();
 		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 		RenderDebug();

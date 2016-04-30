@@ -39,7 +39,6 @@ float ShadowCalculation(vec3 fragPos, float slope)
     float viewDistance = length(viewPos - fragPos);
     
     //weighted bias based on slope
-    //float bias = 0.2;
     float bias = 0.15 * tan(acos(slope)) * max(viewDistance / far_plane, 0.25);
     
     int samples = 20;
@@ -48,14 +47,16 @@ float ShadowCalculation(vec3 fragPos, float slope)
     
     float diskRadius = 0.007 + viewDistance / 700.0;
     //angle factor is used to remove shadows from well light corners
-    float angleFactor = smoothstep(0.9, 1.0, slope);
+    float oneMinusAngleToLightFactor = 1.0 - smoothstep(0.9, 1.0, slope);
     
     for(int i = 0; i < samples; ++i)
     {
-        float closestDepth = texture(depthMap, fragToLight + gridSamplingDisk[i] * diskRadius * angleFactor).r;
+        float closestDepth = texture(depthMap, fragToLight + gridSamplingDisk[i] * diskRadius * oneMinusAngleToLightFactor).r;
         closestDepth *= far_plane;   // Undo mapping [0;1]
-        if((currentDepth - bias - (3 * angleFactor) ) > closestDepth)
+        if((currentDepth - bias) > closestDepth)
+        {
             shadow += 1.0;
+        }
     }
     shadow /= float(samples);
         
@@ -76,11 +77,11 @@ void main()
     vec3 ambient = 0.3 * color;
     // Diffuse
     vec3 lightDir = normalize(lightPos - fs_in.FragPos);
-    float diff = max(dot(lightDir, normal), 0.0);
+    float lambertian = max(dot(lightDir, normal), 0.0);
     
     //this assigns a gradient over 360 degrees and is vary choppy
-    //vec3 diffuse = diff * lightColor;
-    vec3 diffuse = vec3(max(1.0 - (length(lightPos - fs_in.FragPos) / far_plane), 0.0));// * lightColor;
+    vec3 diffuse = lightColor; //*lambertian;
+    float lightIntensity = 1.0 - smoothstep(0.0, far_plane, length(lightPos - fs_in.FragPos));
     
     // Specular
     vec3 viewDir = normalize(viewPos - fs_in.FragPos);
@@ -91,14 +92,9 @@ void main()
     vec3 specular = spec * lightColor;    
     // Calculate shadow
     
-    float shadow = ShadowCalculation(fs_in.FragPos, dot(lightDir, normal)); 
-    //float shadow = 0.0;                     
+    float shadow = ShadowCalculation(fs_in.FragPos, dot(lightDir, normal));               
     
-    vec3 lighting = (ambient + (1.0 - shadow) * (diffuse + specular)) * color;    
+    vec3 lighting = (ambient + lightIntensity * (1.0 - shadow) * (diffuse + specular)) * color;    
     
     FragColor = vec4(lighting, 1.0f);
-   
-    //FragColor = vec4(-dot(lightDir, normal), dot(lightDir, normal), dot(lightDir, normal), 1.0f);
-    //FragColor = vec4(texture(diffuseTex, fs_in.TexCoord).rgb, 1.0f);
-    //FragColor = vec4(1.0, 0.0, 0.0, 1.0);
 }

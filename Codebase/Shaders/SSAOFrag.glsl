@@ -2,9 +2,7 @@
 
 out float FragColor;
 
-in VERTEX {
-    mat4 inverseProjView;
-} fs_in;
+in mat4 inverseProjView;
 
 uniform sampler2D depthTex;
 uniform sampler2D normalTex;
@@ -32,7 +30,7 @@ void main()
     vec3 normal = normalize(texture(normalTex, fragPos.xy).xyz * 2.0 - 1.0);
     vec3 randomVec = texture(noiseTex, fragPos.xy * noiseScale).xyz * 2.0 - 1.0;
     
-    vec4 clip = fs_in.inverseProjView * vec4(fragPos * 2.0 - 1.0, 1.0);
+    vec4 clip = inverseProjView * vec4(fragPos * 2.0 - 1.0, 1.0);
     
     fragPos = clip.xyz / clip.w;
     
@@ -56,11 +54,13 @@ void main()
         
         //new sample depth based on depth texture
         screenSample.z = texture(depthTex , screenSample.xy).r;
-        screenSample = fs_in.inverseProjView * vec4(screenSample.xyz * 2.0 - 1.0, 1.0); //from clip-space to view
-        float fragDepth = screenSample.z / screenSample.w;
+        screenSample = inverseProjView * vec4(screenSample.xyz * 2.0 - 1.0, 1.0); //from clip-space to view
+        vec3 newSample = screenSample.xyz / screenSample.w;
+        float fragDepth = (viewMatrix * vec4(newSample, 1.0)).z;
+        sample.z = (viewMatrix * vec4(sample, 1.0)).z;
         
         //prevent far background objects interacting with close foreground objects
-        float rangeCheck = smoothstep(0.0, 1.0, radius / abs(fragPos.z - fragDepth));
+        float rangeCheck = smoothstep(0.0, 1.0, radius / abs((viewMatrix * vec4(fragPos, 1.0)).z - fragDepth));
         occlusion += (fragDepth >= sample.z ? 1.0 : 0.0) * rangeCheck;
     }
     

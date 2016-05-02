@@ -6,13 +6,10 @@ uniform mat4 projMatrix;
 uniform mat4 orthoProjMatrix;
 uniform mat4 viewMatrix;
 
-out VERTEX {
-     mat4 inverseProjView;
-} vs_out;
-
+out mat4 inverseProjView;
 
 void main()
 {
     gl_Position = orthoProjMatrix * vec4(position, 1.0);
-    vs_out.inverseProjView = inverse(projMatrix * viewMatrix);
+    inverseProjView = inverse(projMatrix * viewMatrix);
 }

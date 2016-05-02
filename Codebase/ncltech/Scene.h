@@ -98,6 +98,7 @@ protected:
 	Shader*				m_GeometryShader;
 	Shader*				m_LightShader;
 	Shader*				m_CombineShader;
+	Shader*				m_SSAOShader;
 
 	Light*				m_Light;
 
@@ -108,7 +109,7 @@ protected:
 	vector<FrustrumSortingObject> m_NodeList;
 
 	GLuint	m_ScreenTexWidth, m_ScreenTexHeight;
-	static const int s_TextureCount = 7;
+	static const int s_TextureCount = 8;
 	union
 	{
 		struct {
@@ -119,20 +120,25 @@ protected:
 			GLuint m_LightDiffuseTex;
 			GLuint m_LightSpecularTex;
 
-			GLuint m_FinalTex;
+			//reusing m_GeometryNormalTex for the final combine step as it is no longer needed
+			//GLuint m_FinalTex;
 
 			GLuint m_LightDepthCubeTex;
+
+			GLuint m_SSAONoiseTex;
+			GLuint m_SSAOTintTex;
 		};
 		GLuint m_Textures[s_TextureCount];
 	};
 	
-	static const int s_FBOCount = 4;
+	static const int s_FBOCount = 5;
 	union {
 		struct {
 			GLuint m_GeometryPassFBO;
 			GLuint m_LightPassFBO;
 			GLuint m_ShadowFBO;
 			GLuint m_FinalFBO;
+			GLuint m_SSAOFBO;
 		};
 		GLuint m_FBOs[s_FBOCount];
 	};
@@ -141,4 +147,34 @@ protected:
 
 	Vec3Physics m_AmbientColour;
 	float   m_SpecularIntensity;
+
+	void BuildHemisphere();
+
+	const int	m_HemisphereSampleSize = 64;
+	Vec3Graphics m_HemisphereSamples[64];
+
+
+	template<int texSize>
+	void BuildSSAONoiseTex()
+	{
+		unsigned char temp[2 * texSize * texSize];
+		std::uniform_int_distribution<int> randomFloats(0, 255); // random floats between 0.0 - 1.0
+		std::default_random_engine generator;
+		int count = texSize * texSize;
+		for (int i = 0; i < count; i++)
+		{
+			unsigned char* noise = temp + (i * 2);
+			noise[0] = randomFloats(generator);
+			noise[1] = randomFloats(generator);
+		}
+
+		glBindTexture(GL_TEXTURE_2D, m_SSAONoiseTex);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RG8, texSize, texSize, 0, GL_RG, GL_UNSIGNED_BYTE, temp);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	}
+
+	void BuildSSAOFBO();
 };

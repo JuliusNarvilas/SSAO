@@ -41,12 +41,11 @@ bool MyScene::InitialiseGL() {
 	this->AddGameObject(ground);
 	m_Resources.push_back(ground);
 
-	TestCases::AddPlaneTestcase(this, Vec3Physics(0.0f, 0.0f, -40.0f));
+	//TestCases::AddPlaneTestcase(this, Vec3Physics(0.0f, 0.0f, -40.0f));
 
-	TestCases::AddWall(this, Vec3Physics(-60.0f, 0.0f, 0.0f), Vec3Physics(0.5f, 15.0f, 60.0f));
-	TestCases::AddWall(this, Vec3Physics(60.0f, 0.0f, 0.0f), Vec3Physics(0.5f, 15.0f, 60.0f));
-	TestCases::AddWall(this, Vec3Physics(0.0f, 0.0f, 60.0f), Vec3Physics(60.0f, 15.0f, 0.5f));
-	TestCases::AddWall(this, Vec3Physics(0.0f, 0.0f, -60.0f), Vec3Physics(60.0f, 15.0f, 0.5f));
+	TestCases::AddWall(this, Vec3Physics::ZEROS, Vec3Physics(0.5f, 15.0f, 60.0f));
+	TestCases::AddWall(this, Vec3Physics::ZEROS, Vec3Physics(60.0f, 15.0f, 0.5f));
+	TestCases::AddWall(this, Vec3Physics::ZEROS, Vec3Physics(10.0f, 7.0f, 10.0f));
 
 	/*
 	TardisGameObject* tardis = new TardisGameObject();

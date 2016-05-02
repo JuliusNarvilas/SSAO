@@ -61,7 +61,7 @@ void TestCases::AddPlaneTestcase(Scene* scene, const Vec3Physics& pos) {
 	plane1->SetLocalTransform(Mat4Physics::Scale(halfVol)); //80m width, 1m height, 80m depth
 	plane1->SetColour(Vec4Graphics(0.8f, 0.5f, 0.5f, 1.0f));
 	plane1->SetBoundingRadius(length);
-	scene->AddGameObject(plane1);
+	//scene->AddGameObject(plane1);
 	m_Resources.push_back(plane1);
 
 	SimpleMeshObject* plane2 = new SimpleMeshObject("Plane2");
@@ -69,7 +69,7 @@ void TestCases::AddPlaneTestcase(Scene* scene, const Vec3Physics& pos) {
 	plane2->SetLocalTransform(Mat4Physics::Scale(halfVol)); //80m width, 1m height, 80m depth
 	plane2->SetColour(Vec4Graphics(0.8f, 0.5f, 0.5f, 1.0f));
 	plane2->SetBoundingRadius(length);
-	scene->AddGameObject(plane2);
+	//scene->AddGameObject(plane2);
 	m_Resources.push_back(plane2);
 }
 

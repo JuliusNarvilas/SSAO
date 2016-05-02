@@ -3,8 +3,8 @@
 in vec3 position;
 
 uniform mat4 projMatrix;
+uniform mat4 orthoProjMatrix;
 uniform mat4 viewMatrix;
-uniform mat4 modelMatrix;
 
 out VERTEX {
      mat4 inverseProjView;
@@ -13,6 +13,6 @@ out VERTEX {
 
 void main()
 {
-    gl_Position = projMatrix * viewMatrix * modelMatrix * vec4(position, 1.0);
+    gl_Position = orthoProjMatrix * vec4(position, 1.0);
     vs_out.inverseProjView = inverse(projMatrix * viewMatrix);
 }

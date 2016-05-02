@@ -31,6 +31,9 @@ Scene::Scene(Window& window) : OGLRenderer(window) {
 	m_SSAOShader = new Shader(SHADERDIR"SSAOVert.glsl", SHADERDIR"SSAOFrag.glsl");
 	assert(m_SSAOShader->IsOperational());
 
+	m_SSAOBlurShader = new Shader(SHADERDIR"SSAOBlurVert.glsl", SHADERDIR"SSAOBlurFrag.glsl");
+	assert(m_SSAOBlurShader->IsOperational());
+
 	m_Camera = new Camera();
 	m_RootGameObject = new GameObject();
 	m_RootGameObject->m_Scene = this;
@@ -51,6 +54,7 @@ Scene::Scene(Window& window) : OGLRenderer(window) {
 
 	BuildShadowFBO();
 	BuildSSAOFBO();
+	BuildSSAOBlurFBO();
 
 	SetCurrentShader(m_SSAOShader);
 	glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "samples"), 64, (float*)m_HemisphereSamples);
@@ -171,8 +175,9 @@ void Scene::RenderScene() {
 	glDisable(GL_BLEND);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, m_SSAOFBO);
-	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);//???
-	glClear(GL_COLOR_BUFFER_BIT);
+	//dont really need to clear as the whole thing is going to be rendered on top with no blending
+	//glClearColor(0.0f, 0.0f, 0.0f, 1.0f);//???
+	//glClear(GL_COLOR_BUFFER_BIT);
 
 	SetCurrentShader(m_SSAOShader);
 	UpdateShaderMatrices();
@@ -182,8 +187,7 @@ void Scene::RenderScene() {
 	projMatrix = Mat4Graphics::Orthographic(-1, 1, 1, -1, -1, 1);
 	glUniformMatrix4fv(glGetUniformLocation(currentShader->GetProgram(), "orthoProjMatrix"), 1, false, (float*)&projMatrix);
 
-	int test = glGetUniformLocation(currentShader->GetProgram(), "depthTex");
-	glUniform1i(test, 2);
+	glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "depthTex"), 2);
 	glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "normalTex"), 3);
 	glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "noiseTex"), 4);
 
@@ -193,6 +197,27 @@ void Scene::RenderScene() {
 	glBindTexture(GL_TEXTURE_2D, m_GeometryNormalTex);
 	glActiveTexture(GL_TEXTURE4);
 	glBindTexture(GL_TEXTURE_2D, m_SSAONoiseTex);
+
+	m_ScreenQuad->Draw();
+
+	/////////////////////////////////////////////////////////////////////////////////////
+	//Blur pass
+
+	glBindFramebuffer(GL_FRAMEBUFFER, m_SSAOBlurFBO);
+	/*glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+	glClear(GL_COLOR_BUFFER_BIT);*/
+
+	SetCurrentShader(m_SSAOBlurShader);
+	//UpdateShaderMatrices();
+
+	glUniform2f(glGetUniformLocation(currentShader->GetProgram(), "pixelSize"), 1.0f / m_ScreenTexWidth, 1.0f / m_ScreenTexHeight);
+	projMatrix = Mat4Graphics::Orthographic(-1, 1, 1, -1, -1, 1);
+	glUniformMatrix4fv(glGetUniformLocation(currentShader->GetProgram(), "orthoProjMatrix"), 1, false, (float*)&projMatrix);
+
+	glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "ssaoTex"), 2);
+
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_2D, m_LightDiffuseTex);
 
 	m_ScreenQuad->Draw();
 
@@ -249,6 +274,7 @@ void Scene::RenderScene() {
 	glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "diffuseTex"), 2);
 	glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "emissiveTex"), 3);
 	glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "specularTex"), 4);
+	glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "ssaoTex"), 5);
 	
 	glActiveTexture(GL_TEXTURE2);
 	glBindTexture(GL_TEXTURE_2D, m_GeometryColourTex);
@@ -256,6 +282,8 @@ void Scene::RenderScene() {
 	glBindTexture(GL_TEXTURE_2D, m_LightDiffuseTex);
 	glActiveTexture(GL_TEXTURE4);
 	glBindTexture(GL_TEXTURE_2D, m_LightSpecularTex);
+	glActiveTexture(GL_TEXTURE5);
+	glBindTexture(GL_TEXTURE_2D, m_SSAOTintTex);
 
 	m_ScreenQuad->Draw();
 
@@ -480,6 +508,22 @@ void Scene::BuildSSAOFBO()
 	glBindFramebuffer(GL_FRAMEBUFFER, m_SSAOFBO);
 
 	BuildSSAONoiseTex<4>();
+	
+	//Reuse Light texture as target to later render to the real target when performing blur
+	glBindTexture(GL_TEXTURE_2D, m_LightDiffuseTex);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_LightDiffuseTex, 0);
+
+	GLuint attachments[1] = { GL_COLOR_ATTACHMENT0 };
+	glDrawBuffers(1, attachments);
+
+	assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
+
+	BuildHemisphere();
+}
+
+void Scene::BuildSSAOBlurFBO()
+{
+	glBindFramebuffer(GL_FRAMEBUFFER, m_SSAOBlurFBO);
 
 	glBindTexture(GL_TEXTURE_2D, m_SSAOTintTex);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, m_ScreenTexWidth, m_ScreenTexHeight, 0, GL_RED, GL_UNSIGNED_BYTE, NULL);
@@ -491,11 +535,7 @@ void Scene::BuildSSAOFBO()
 	glDrawBuffers(1, attachments);
 
 	assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
-
-	BuildHemisphere();
 }
-
-
 
 
 ////////////////////////////////////////////////////////////////////////////////////

@@ -99,6 +99,7 @@ protected:
 	Shader*				m_LightShader;
 	Shader*				m_CombineShader;
 	Shader*				m_SSAOShader;
+	Shader*				m_SSAOBlurShader;
 
 	Light*				m_Light;
 
@@ -131,7 +132,7 @@ protected:
 		GLuint m_Textures[s_TextureCount];
 	};
 	
-	static const int s_FBOCount = 5;
+	static const int s_FBOCount = 6;
 	union {
 		struct {
 			GLuint m_GeometryPassFBO;
@@ -139,6 +140,7 @@ protected:
 			GLuint m_ShadowFBO;
 			GLuint m_FinalFBO;
 			GLuint m_SSAOFBO;
+			GLuint m_SSAOBlurFBO;
 		};
 		GLuint m_FBOs[s_FBOCount];
 	};
@@ -177,4 +179,5 @@ protected:
 	}
 
 	void BuildSSAOFBO();
+	void BuildSSAOBlurFBO();
 };

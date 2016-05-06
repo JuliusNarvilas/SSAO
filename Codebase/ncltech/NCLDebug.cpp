@@ -1,6 +1,7 @@
 #include "NCLDebug.h"
 #include <algorithm>
 #include "nclgl/Shader.h"
+#include "../SOIL2/src/SOIL2/SOIL2.h"
 
 Vec3Physics	NCLDebug::m_CameraPosition;
 Mat4Physics	NCLDebug::m_ProjView;

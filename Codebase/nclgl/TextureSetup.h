@@ -3,7 +3,7 @@
 #include "../Dependencies/glew-1.13.0/include/GL/glew.h"
 #include "../Dependencies/glew-1.13.0/include/GL/wglew.h"
 
-#include "../Dependencies/SOIL2/SOIL2.h"
+#include "../SOIL2/src/SOIL2/SOIL2.h"
 #include <string>
 #include "Helpers/common.h"
 

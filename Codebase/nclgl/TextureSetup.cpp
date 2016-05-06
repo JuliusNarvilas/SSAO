@@ -1,6 +1,5 @@
 #include "TextureSetup.h"
 
-#include "../Dependencies/SOIL2/SOIL2.h"
 #include <iostream>
 #include "TextureGroup.h"
 #include <sstream>

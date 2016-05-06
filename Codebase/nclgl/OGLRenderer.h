@@ -22,7 +22,7 @@ _-_-_-_-_-_-_-""  ""
 #include "GL/glew.h"
 #include "GL/wglew.h"
 
-#include "SOIL.h"
+#include "../SOIL2/src/SOIL2/SOIL2.h"
 
 #include "Math/nclglMath.h"
 #include "Window.h"
@@ -35,7 +35,11 @@ using std::vector;
 
 #pragma comment(lib, "opengl32.lib")
 #pragma comment(lib, "glew32.lib")
-#pragma comment(lib, "SOIL.lib")
+#ifdef _DEBUG
+#pragma comment(lib, "SOIL2-debug.lib")
+#else
+#pragma comment(lib, "SOIL2.lib")
+#endif
 
 #ifdef _DEBUG
 #define GL_BREAKPOINT glUniform4uiv(0,0,0);//Invalid, but triggers gdebugger ;)

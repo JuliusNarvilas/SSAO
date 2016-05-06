@@ -1,11 +1,17 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2012
+# Visual Studio 14
+VisualStudioVersion = 14.0.24720.0
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "nclgl", "..\nclgl\nclgl.vcxproj", "{98D6B51B-CB0A-4389-ADC6-24082B967C3F}"
+	ProjectSection(ProjectDependencies) = postProject
+		{CE31F24A-8EC9-1A45-BF18-97E79BC89037} = {CE31F24A-8EC9-1A45-BF18-97E79BC89037}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ncltech", "..\ncltech\ncltech.vcxproj", "{9FD1ABBA-7FDF-451C-BF1F-030F93B1AE7E}"
 	ProjectSection(ProjectDependencies) = postProject
 		{98D6B51B-CB0A-4389-ADC6-24082B967C3F} = {98D6B51B-CB0A-4389-ADC6-24082B967C3F}
+		{CE31F24A-8EC9-1A45-BF18-97E79BC89037} = {CE31F24A-8EC9-1A45-BF18-97E79BC89037}
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Coursework", "Coursework", "{230753E4-DB69-4B77-AB0E-16FE1BE1CC1F}"
@@ -17,6 +23,11 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Helpers", "..\Helpers\Helpers.vcxproj", "{73BFCC5E-6926-4C81-A0BF-C149BB75C307}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Coursework", "Coursework\Coursework.vcxproj", "{FD0B3B92-0AB8-4C68-B68C-CBCDD3603C3A}"
+	ProjectSection(ProjectDependencies) = postProject
+		{CE31F24A-8EC9-1A45-BF18-97E79BC89037} = {CE31F24A-8EC9-1A45-BF18-97E79BC89037}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "soil2-static-lib", "..\SOIL2\make\windows\soil2-static-lib.vcxproj", "{CE31F24A-8EC9-1A45-BF18-97E79BC89037}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -56,15 +67,22 @@ Global
 		{FD0B3B92-0AB8-4C68-B68C-CBCDD3603C3A}.Release|Win32.ActiveCfg = Release|Win32
 		{FD0B3B92-0AB8-4C68-B68C-CBCDD3603C3A}.Release|Win32.Build.0 = Release|Win32
 		{FD0B3B92-0AB8-4C68-B68C-CBCDD3603C3A}.Release|x64.ActiveCfg = Release|Win32
+		{CE31F24A-8EC9-1A45-BF18-97E79BC89037}.Debug|Win32.ActiveCfg = debug|Win32
+		{CE31F24A-8EC9-1A45-BF18-97E79BC89037}.Debug|Win32.Build.0 = debug|Win32
+		{CE31F24A-8EC9-1A45-BF18-97E79BC89037}.Debug|x64.ActiveCfg = debug|Win32
+		{CE31F24A-8EC9-1A45-BF18-97E79BC89037}.Release|Win32.ActiveCfg = release|Win32
+		{CE31F24A-8EC9-1A45-BF18-97E79BC89037}.Release|Win32.Build.0 = release|Win32
+		{CE31F24A-8EC9-1A45-BF18-97E79BC89037}.Release|x64.ActiveCfg = release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{9FD1ABBA-7FDF-451C-BF1F-030F93B1AE7E} = {68747438-9230-4D7A-B1F3-F76A2ABD9CF1}
 		{98D6B51B-CB0A-4389-ADC6-24082B967C3F} = {68747438-9230-4D7A-B1F3-F76A2ABD9CF1}
+		{9FD1ABBA-7FDF-451C-BF1F-030F93B1AE7E} = {68747438-9230-4D7A-B1F3-F76A2ABD9CF1}
 		{FA94D7DF-F3EA-417B-9F3E-BF308390E96C} = {68747438-9230-4D7A-B1F3-F76A2ABD9CF1}
 		{73BFCC5E-6926-4C81-A0BF-C149BB75C307} = {68747438-9230-4D7A-B1F3-F76A2ABD9CF1}
 		{FD0B3B92-0AB8-4C68-B68C-CBCDD3603C3A} = {230753E4-DB69-4B77-AB0E-16FE1BE1CC1F}
+		{CE31F24A-8EC9-1A45-BF18-97E79BC89037} = {68747438-9230-4D7A-B1F3-F76A2ABD9CF1}
 	EndGlobalSection
 EndGlobal

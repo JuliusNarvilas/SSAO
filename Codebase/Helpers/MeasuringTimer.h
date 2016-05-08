@@ -7,43 +7,36 @@
 #include <climits>
 #include <iostream>
 #include <string>
+#include <stack>
 
+
+#define MEASURING_TIMER_LOG_START(str) MeasuringTimer::Instance.LogStart(str)
+#define MEASURING_TIMER_LOG_END() MeasuringTimer::Instance.LogEnd()
+#define MEASURING_TIMER_PRINT(stream) stream << MeasuringTimer::Instance
+#define MEASURING_TIMER_CLEAR() MeasuringTimer::Instance.Clear()
 
 class MeasuringTimer : public Timer {
  private:
-	/// <summary>
-	/// Structure representing a point in time for a beginning or end of a period.
-	/// </summary>
+
 	struct record {
-		/// <summary>
-		/// Representation of a point in time.
-		/// </summary>
-		timestamp timestamp;
-		/// <summary>
-		/// Message associated with the time measurement.
-		/// </summary>
-		std::string text;
-		/// <summary>
-		/// Indicates the start or end of a period measurement.
-		/// </summary>
-		bool isStart;
+		timestamp startTimestamp;
+		timestamp endTimestamp;
+		record* end;
+		const char* text;
 	};
 
-	/// <summary>
-	/// Heaped array of <see cref="Performance::Timer::record"/>, representing all possible time measurements.
-	/// </summary>
-	/// <remarks>
-	/// The size of this heaped array is twice the size given to the <see cref="Performance::Timer::Timer(uint)"/> constructor,
-	/// for logging start and end timestamps and producing a given number of measurable periods.
-	/// </remarks>
 	record* m_logs;
 
-	/// <summary>
-	/// Index of the end of currently used space in <see cref="Performance::Timer::m_logs"/>.
-	/// </summary>
 	uint m_endIndex;
 
- public:
+	std::stack<record*> m_recordStack;
+
+public:
+	/// <summary>
+	/// A static instance of <see cref="MeasuringTimer"/> class.
+	/// </summary>
+	static MeasuringTimer Instance;
+
 	/// <summary>
 	/// Max number of logs that can be taken.
 	/// </summary>
@@ -64,40 +57,28 @@ class MeasuringTimer : public Timer {
 	/// </summary>
 	/// <param name="msg">Message to associate with the new time period.</param>
 	/// <returns>Index representation of where the record is placed internally.</returns>
-	inline uint LogStart(const char* msg = "") {
+	inline void LogStart(const char* msg = "") {
 		assert(("Performance::Time::logStart overran the max size", m_endIndex < maxSize));
-		m_logs[m_endIndex].isStart = true;
-		m_logs[m_endIndex].text.assign(msg);
-		m_logs[m_endIndex].timestamp = Timer::Now();
-		return m_endIndex++;
+		m_recordStack.push(m_logs + m_endIndex);
+		m_logs[m_endIndex].text = msg;
+		m_logs[m_endIndex++].startTimestamp = Timer::Now();
 	}
 
 	/// <summary>
 	/// Logs a timestamp for the end of the last period.
 	/// </summary>
 	/// <param name="msg">Message to associate with the end of a time period.</param>
-	inline void LogEnd(const char* msg = "") {
-		assert(("Performance::Time::logEnd overran the max size", m_endIndex < maxSize));
-		m_logs[m_endIndex].timestamp = Timer::Now();
-		m_logs[m_endIndex].isStart = false;
-		m_logs[m_endIndex++].text.assign(msg);
+	inline void LogEnd() {
+		assert(("overran the max size", m_endIndex < maxSize));
+		record* lastRecord = m_recordStack.top();
+		assert(("no open record found", lastRecord != NULL));
+		lastRecord->endTimestamp = Timer::Now();
+		m_recordStack.pop();
+		lastRecord->end = m_logs + m_endIndex;
 	}
 
-	/// <summary>
-	/// Logs a timestamp for the start of a new period.
-	/// </summary>
-	/// <param name="msg">Message to associate with the new time period.</param>
-	/// <returns>Index representation of where the record is placed internally.</returns>
-	inline uint LogStart(const std::string& msg) {
-		return LogStart(msg.c_str());
-	}
-
-	/// <summary>
-	/// Logs a timestamp for the end of the last period.
-	/// </summary>
-	/// <param name="msg">Message to associate with the end of a time period.</param>
-	inline void LogEnd(const std::string& msg) {
-		LogEnd(msg.c_str());
+	inline void LogStart(const std::string& msg) {
+		LogStart(msg.c_str());
 	}
 
 	/// <summary>
@@ -107,27 +88,6 @@ class MeasuringTimer : public Timer {
 	/// <param name="timeResolution">Time period resolution, 1 = seconds and 1000000 = microseconds.</param>
 	/// <returns>Duration of the time period.</returns>
 	float DurationOf(uint index, float timeResolution = 1.0f) const;
-
-
-	/// <summary>
-	/// Returns the <see cref="Performance::Timer::record"/>, identified internally by the given index.
-	/// </summary>
-	/// <param name="index">Index representation of where the record is placed internally.</param>
-	/// <returns>Reference to a <see cref="Performance::Timer::record"/>.</returns>
-	inline const record& Peek(uint index) const {
-		assert(("Performance::Time::peek went out of bounds", index < m_endIndex));
-		return m_logs[index];
-	}
-
-	/// <summary>
-	/// Returns the <see cref="Performance::Timer::record"/>, identified internally by the given index.
-	/// </summary>
-	/// <param name="index">Index representation of where the record is placed internally.</param>
-	/// <returns>reference to a <see cref="Performance::Timer::record"/>.</returns>
-	inline record& Get(uint index) {
-		assert(("Performance::Time::get went out of bounds", index < m_endIndex));
-		return m_logs[index];
-	}
 
 	/// <summary>
 	/// Prints time periods starting at given nested level.
@@ -145,6 +105,7 @@ class MeasuringTimer : public Timer {
 	/// Resets the used logging space to indicate an empty collection of logs.
 	/// </summary>
 	inline void Clear() {
+		//memset(m_logs, 0, sizeof(record) * m_endIndex);
 		m_endIndex = 0;
 	}
 
@@ -155,7 +116,9 @@ class MeasuringTimer : public Timer {
 	/// <remarks>
 	/// Parameter maxLogs has to be at least two times the number of time periods that will be recorded.
 	/// </remarks>
-	inline MeasuringTimer(uint maxLogs): indentation("-\t"), endLine(LINE_SEPARATOR), m_logs(new record[maxLogs]), m_endIndex(0), maxSize(maxLogs) {}
+	inline MeasuringTimer(uint maxLogs): indentation("-\t"), endLine(LINE_SEPARATOR), m_logs(new record[maxLogs]), m_endIndex(0), maxSize(maxLogs) {
+		memset(m_logs, 0, sizeof(record) * maxSize);
+	}
 
 	/// <summary>
 	/// Creates a copy of a timer for measuring duration of time periods.

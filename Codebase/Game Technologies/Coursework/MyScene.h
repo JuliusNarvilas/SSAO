@@ -7,18 +7,6 @@
 #include <sstream>
 #include <nclgl\Light.h>
 
-enum RenderMode : unsigned int {
-	NormalRenderMode,
-	DebugRenderMode,
-	NormalAndDebugRenderMode,
-	RenderModeMax
-};
-static const unsigned int RenderModeMasks[RenderModeMax] = {
-	1,
-	2,
-	3
-};
-
 enum EndGameStates {
 	LoseGameState,
 	HighScoreGameState,
@@ -36,7 +24,7 @@ class MyScene : public Scene {
 	//Scene* GetNextScene(Window& window) override;
 
  protected:
-	unsigned int	m_RenderMode;
 	GameTimer		sceneUpdateTimer;
+	GameTimer		sceneRenderTimer;
 	std::vector<GameObject*> m_Resources;
 };

@@ -7,7 +7,7 @@ last frame (default value is for simplicities sake...)
 */
 void Camera::UpdateCamera(float msec)	{
 	float dt = msec * 0.001f;
-	float speed = 15.0f * dt; //1.5m per second
+	float speed = 3.0f * dt; //1.5m per second
 
 	//Update the mouse by how much
 	pitch -= (Window::GetMouse()->GetRelativePosition().y);

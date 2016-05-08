@@ -6,7 +6,9 @@
 #include "../Helpers/RNG.h"
 #include "../Helpers/interpolation.h"
 
-const GLuint SHADOW_WIDTH = 1024 * 2, SHADOW_HEIGHT = 1024 * 2;
+unsigned int Scene::RenderMode = 0;
+
+const GLuint SHADOW_WIDTH = 128 * 2, SHADOW_HEIGHT = 128 * 2;
 
 
 Scene::Scene(Window& window) : OGLRenderer(window) {
@@ -133,10 +135,26 @@ void Scene::RenderScene() {
 		BuildGeometryPassFBO();
 	}
 
+	bool enableSSAO = false;
+	bool enableSSAOBlur = false;
+	bool enableShadowCasting = true;
 	//////////////////////////////////////////////////////////////
 	//Shadow casting pass
 
-	RenderLightMaps();
+	glBindFramebuffer(GL_FRAMEBUFFER, m_ShadowFBO);
+	glClear(GL_DEPTH_BUFFER_BIT);
+
+	if (enableShadowCasting)
+	{
+		glEnable(GL_DEPTH_TEST);
+		glDepthFunc(GL_LEQUAL);
+		glEnable(GL_CULL_FACE);
+		glCullFace(GL_BACK);
+
+		glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+
+		RenderLightMaps();
+	}
 
 	//////////////////////////////////////////////////////////////
 	//Geometry pass
@@ -155,72 +173,88 @@ void Scene::RenderScene() {
 
 	SetCurrentShader(m_GeometryShader);
 	viewMatrix = m_Camera->BuildViewMatrix();
-	projMatrix = Mat4Graphics::Perspective(0.01f, 1000.0f, m_ScreenTexWidth / m_ScreenTexHeight, 45.0f);
+	projMatrix = Mat4Graphics::Perspective(0.01f, 1000.0f, float(m_ScreenTexWidth) / float(m_ScreenTexHeight), 45.0f);
 	m_FrameFrustum.FromMatrix(projMatrix * viewMatrix);
 	UpdateShaderMatrices();
 
 	UpdateWorldMatrices(m_RootGameObject, Mat4Physics::IDENTITY);
-	BuildNodeLists(m_RootGameObject);
-	SortNodeLists();
+	
+	DrawAllNodes();
 
-	DrawNodes();
-	DrawTransparentNodes();
-
-	//Clear Render List
-	ClearNodeLists();
+	Mat4Graphics fakeLightTransform = Mat4Graphics::Translation(m_Light->position) * Mat4Graphics::Scale(Vec3Graphics(0.5, 0.5, 0.5));
+	glUniformMatrix4fv(glGetUniformLocation(currentShader->GetProgram(), "modelMatrix"), 1, false, (float*)&fakeLightTransform);
+	glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "lightPos"), 1, (float*)&m_Light->position);
+	
+	m_Light->mesh->Draw();
 
 	//////////////////////////////////////////////////////////////////////////////////
 	//SSAO pass
-	glDisable(GL_CULL_FACE);
-	glDisable(GL_BLEND);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, m_SSAOFBO);
-	//dont really need to clear as the whole thing is going to be rendered on top with no blending
-	//glClearColor(0.0f, 0.0f, 0.0f, 1.0f);//???
-	//glClear(GL_COLOR_BUFFER_BIT);
 
-	SetCurrentShader(m_SSAOShader);
-	UpdateShaderMatrices();
+	if (enableSSAO)
+	{
+		glDisable(GL_CULL_FACE);
+		glDisable(GL_BLEND);
 
-	glUniform2f(glGetUniformLocation(currentShader->GetProgram(), "pixelSize"), 1.0f / m_ScreenTexWidth, 1.0f / m_ScreenTexHeight);
-	glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "kernelSize"), m_HemisphereSampleSize);
-	projMatrix = Mat4Graphics::Orthographic(-1, 1, 1, -1, -1, 1);
-	glUniformMatrix4fv(glGetUniformLocation(currentShader->GetProgram(), "orthoProjMatrix"), 1, false, (float*)&projMatrix);
+		//dont really need to clear as the whole thing is going to be rendered on top with no blending
+		//glClearColor(0.0f, 0.0f, 0.0f, 1.0f);//???
+		//glClear(GL_COLOR_BUFFER_BIT);
 
-	glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "depthTex"), 2);
-	glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "normalTex"), 3);
-	glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "noiseTex"), 4);
+		SetCurrentShader(m_SSAOShader);
+		UpdateShaderMatrices();
 
-	glActiveTexture(GL_TEXTURE2);
-	glBindTexture(GL_TEXTURE_2D, m_GeometryDepthTex);
-	glActiveTexture(GL_TEXTURE3);
-	glBindTexture(GL_TEXTURE_2D, m_GeometryNormalTex);
-	glActiveTexture(GL_TEXTURE4);
-	glBindTexture(GL_TEXTURE_2D, m_SSAONoiseTex);
+		glUniform2f(glGetUniformLocation(currentShader->GetProgram(), "pixelSize"), 1.0f / m_ScreenTexWidth, 1.0f / m_ScreenTexHeight);
+		glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "kernelSize"), m_HemisphereSampleSize);
+		projMatrix = Mat4Graphics::Orthographic(-1, 1, 1, -1, -1, 1);
+		glUniformMatrix4fv(glGetUniformLocation(currentShader->GetProgram(), "orthoProjMatrix"), 1, false, (float*)&projMatrix);
 
-	m_ScreenQuad->Draw();
+		glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "depthTex"), 2);
+		glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "normalTex"), 3);
+		glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "noiseTex"), 4);
 
+		glActiveTexture(GL_TEXTURE2);
+		glBindTexture(GL_TEXTURE_2D, m_GeometryDepthTex);
+		glActiveTexture(GL_TEXTURE3);
+		glBindTexture(GL_TEXTURE_2D, m_GeometryNormalTex);
+		glActiveTexture(GL_TEXTURE4);
+		glBindTexture(GL_TEXTURE_2D, m_SSAONoiseTex);
+
+		m_ScreenQuad->Draw();
+	}
+	else
+	{
+		glClear(GL_COLOR_BUFFER_BIT);
+	}
 	/////////////////////////////////////////////////////////////////////////////////////
 	//Blur pass
+	if (enableSSAOBlur)
+	{
+		glBindFramebuffer(GL_FRAMEBUFFER, m_SSAOBlurFBO);
+		/*glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT);*/
 
-	glBindFramebuffer(GL_FRAMEBUFFER, m_SSAOBlurFBO);
-	/*glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-	glClear(GL_COLOR_BUFFER_BIT);*/
+		SetCurrentShader(m_SSAOBlurShader);
+		//UpdateShaderMatrices();
 
-	SetCurrentShader(m_SSAOBlurShader);
-	//UpdateShaderMatrices();
+		glUniform2f(glGetUniformLocation(currentShader->GetProgram(), "pixelSize"), 1.0f / m_ScreenTexWidth, 1.0f / m_ScreenTexHeight);
+		projMatrix = Mat4Graphics::Orthographic(-1, 1, 1, -1, -1, 1);
+		glUniformMatrix4fv(glGetUniformLocation(currentShader->GetProgram(), "orthoProjMatrix"), 1, false, (float*)&projMatrix);
 
-	glUniform2f(glGetUniformLocation(currentShader->GetProgram(), "pixelSize"), 1.0f / m_ScreenTexWidth, 1.0f / m_ScreenTexHeight);
-	projMatrix = Mat4Graphics::Orthographic(-1, 1, 1, -1, -1, 1);
-	glUniformMatrix4fv(glGetUniformLocation(currentShader->GetProgram(), "orthoProjMatrix"), 1, false, (float*)&projMatrix);
+		glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "ssaoTex"), 2);
 
-	glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "ssaoTex"), 2);
+		glActiveTexture(GL_TEXTURE2);
+		glBindTexture(GL_TEXTURE_2D, m_LightDiffuseTex);
 
-	glActiveTexture(GL_TEXTURE2);
-	glBindTexture(GL_TEXTURE_2D, m_LightDiffuseTex);
+		m_ScreenQuad->Draw();
+	}
+	else
+	{
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, m_SSAOFBO);
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_SSAOBlurFBO);
 
-	m_ScreenQuad->Draw();
-
+		glBlitFramebuffer(0, 0, m_ScreenTexWidth, m_ScreenTexHeight, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+	}
 	////////////////////////////////////////////////////////////////////////////////////
 	//Light pass
 
@@ -234,7 +268,7 @@ void Scene::RenderScene() {
 	glDisable(GL_DEPTH_TEST);
 
 	SetCurrentShader(m_LightShader);
-	projMatrix = Mat4Graphics::Perspective(0.01f, 1000.0f, m_ScreenTexWidth / m_ScreenTexHeight, 45.0f);
+	projMatrix = Mat4Graphics::Perspective(0.01f, 1000.0f, float(m_ScreenTexWidth) / float(m_ScreenTexHeight), 45.0f);
 	UpdateShaderMatrices();
 	glUniform2f(glGetUniformLocation(currentShader->GetProgram(), "pixelSize"), 1.0f / m_ScreenTexWidth, 1.0f / m_ScreenTexHeight);
 	Mat4Graphics lightTransform = Mat4Graphics::Translation(m_Light->position) * Mat4Graphics::Scale(Vec3Graphics(m_Light->scale, m_Light->scale, m_Light->scale));
@@ -307,19 +341,9 @@ void Scene::UpdateScene(float dt) {
 
 
 
-
-
-
 void Scene::RenderLightMaps()
 {
 	// 1. first render to depth cubemap
-	glBindFramebuffer(GL_FRAMEBUFFER, m_ShadowFBO);
-	glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
-	glClear(GL_DEPTH_BUFFER_BIT);
-	glEnable(GL_DEPTH_TEST);
-	glDepthFunc(GL_LEQUAL);
-	glEnable(GL_CULL_FACE);
-	glCullFace(GL_BACK);
 
 	SetCurrentShader(m_ShadowCubeShader);
 	//camera view and proj are not valid
@@ -549,8 +573,8 @@ void Scene::BuildHemisphere()
 	{
 		Vec3Graphics& sample = m_HemisphereSamples[i];
 		sample = Vec3Graphics(
-			randomFloats(generator) * 2.0 - 1.0,
-			randomFloats(generator) * 2.0 - 1.0,
+			randomFloats(generator) * 2.0f - 1.0f,
+			randomFloats(generator) * 2.0f - 1.0f,
 			randomFloats(generator)
 		);
 		sample.Normalize();
@@ -569,13 +593,21 @@ void Scene::BuildHemisphere()
 
 
 void Scene::Present() {
+	scenePresentTimer.GetTimedMS();
+
 	//Present our Screen
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	PresentScreenFBO();
 
-	//Swap Buffers and get ready to repeat the process
-	glUseProgram(0);
+	if ((RenderModeMasks[RenderMode] & RenderModeMasks[DebugRenderMode]) != 0) {
+		NCLDebug::AddStatusEntry(Vec4Graphics::ONES, "Scene Present     : %5.2fms", scenePresentTimer.GetTimedMS());
+	}
+
 	SwapBuffers();
+
+	if ((RenderModeMasks[RenderMode] & RenderModeMasks[DebugRenderMode]) != 0) {
+		NCLDebug::AddStatusEntry(Vec4Graphics::ONES, "Swap Buffers      : %5.2fms", scenePresentTimer.GetTimedMS());
+	}
 }
 
 void Scene::PresentScreenFBO() {
@@ -590,50 +622,6 @@ void Scene::UpdateWorldMatrices(GameObject* cNode, const Mat4Graphics& parentWM)
 
 	for (auto child : cNode->GetChildren())
 		UpdateWorldMatrices(child, cNode->m_WorldTransform);
-}
-
-void Scene::BuildNodeLists(GameObject* cNode) {
-	Vec3Physics obj_pos = cNode->m_WorldTransform.GetTranslation();
-
-	Vec3Physics direction = obj_pos - m_Camera->GetPosition();
-
-	FrustrumSortingObject fso;
-	fso.camera_distance = direction.Dot(direction);
-	fso.target			= cNode;
-
-	if (m_FrameFrustum.InsideFrustum(obj_pos, cNode->GetBoundingRadius())) {
-		if (cNode->GetColour().w < 1.0f)
-			m_TransparentNodeList.push_back(fso);
-		else
-			m_NodeList.push_back(fso);
-	}
-
-	for (auto child : cNode->GetChildren())
-		BuildNodeLists(child);
-}
-
-
-void Scene::SortNodeLists() {
-	std::sort(m_TransparentNodeList.begin(), m_TransparentNodeList.end(), FrustrumSortingObject::CompareByCameraDistanceInv);
-	std::sort(m_NodeList.begin(), m_NodeList.end(), FrustrumSortingObject::CompareByCameraDistance);
-}
-
-void Scene::ClearNodeLists() {
-	m_TransparentNodeList.clear();
-	m_NodeList.clear();
-}
-
-void Scene::DrawNodes() {
-	for (auto node : m_NodeList)
-		DrawNode(node.target);
-}
-
-void Scene::DrawTransparentNodes()
-{
-	for (auto node : m_TransparentNodeList)
-	{
-		DrawNode(node.target);
-	}
 }
 
 void Scene::DrawNode(GameObject* n) {

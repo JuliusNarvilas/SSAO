@@ -34,7 +34,7 @@ void TextureGroup::MeasureMemoryUsageAdd(GLuint textureId) {
 
 	glBindTexture(GL_TEXTURE_2D, 0);
 
-	memoryUsage += (width * height * ((r + g + b + a) / 8.0f));
+	memoryUsage += int(width * height * ((r + g + b + a) / 8.0f));
 }
 
 void TextureGroup::MeasureMemoryUsageSubstract(GLuint textureId) {
@@ -53,7 +53,7 @@ void TextureGroup::MeasureMemoryUsageSubstract(GLuint textureId) {
 
 	glBindTexture(GL_TEXTURE_2D, 0);
 
-	memoryUsage -= (width * height * ((r + g + b + a) / 8.0f));
+	memoryUsage -= int(width * height * ((r + g + b + a) / 8.0f));
 }
 
 

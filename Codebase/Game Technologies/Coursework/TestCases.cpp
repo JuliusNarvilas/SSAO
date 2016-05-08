@@ -78,7 +78,7 @@ void TestCases::AddWall(Scene* scene, const Vec3Physics& pos, const Vec3Physics&
 	float length = scale.Length();
 	SimpleMeshObject* plane1 = new SimpleMeshObject("Plane1");
 	plane1->SetMesh(CommonMeshes::Cube(), false);
-	plane1->SetLocalTransform(Mat4Physics::Scale(scale)); //80m width, 1m height, 80m depth
+	plane1->SetLocalTransform(Mat4Physics::Translation(pos) * Mat4Physics::Scale(scale)); //80m width, 1m height, 80m depth
 	plane1->SetColour(Vec4Graphics(0.8f, 0.8f, 0.8f, 1.0f));
 	plane1->SetBoundingRadius(length);
 	plane1->IsBoundingSphere(false);

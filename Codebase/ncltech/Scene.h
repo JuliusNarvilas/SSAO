@@ -32,6 +32,20 @@ complicated scene.
 #include "TSingleton.h"
 #include "GameObject.h"
 
+
+enum RenderMode : unsigned int {
+	NormalRenderMode,
+	DebugRenderMode,
+	NormalAndDebugRenderMode,
+	RenderModeMax
+};
+static const unsigned int RenderModeMasks[RenderModeMax] = {
+	1,
+	2,
+	3
+};
+
+
 struct FrustrumSortingObject
 {
 	float		camera_distance;
@@ -49,6 +63,9 @@ struct FrustrumSortingObject
 class Scene : public OGLRenderer
 {
 public:
+
+	static unsigned int	RenderMode;
+
 	Scene(Window& window);
 	~Scene();
 
@@ -78,15 +95,8 @@ protected:
 
 	void	UpdateWorldMatrices(GameObject* node, const Mat4Graphics& parentWM);
 
-	void	BuildNodeLists(GameObject* node);
-	void	SortNodeLists();
-	void	ClearNodeLists();
-	void	DrawNodes();
-
 	void	DrawAllNodes(GameObject* n);
 	void	DrawAllNodes();
-
-	void	DrawTransparentNodes();
 
 	void	DrawNode(GameObject* n);
 
@@ -100,6 +110,8 @@ protected:
 	Shader*				m_CombineShader;
 	Shader*				m_SSAOShader;
 	Shader*				m_SSAOBlurShader;
+
+	GameTimer			scenePresentTimer;
 
 	Light*				m_Light;
 

@@ -1,6 +1,5 @@
 #include "Mesh.h"
 #include <map>
-#include <cstdint>
 #include <iostream>
 #include <cmath>
 
@@ -25,6 +24,33 @@ Mesh::Mesh(void)	{
 	colours		  = NULL;
 
 	transformCoords = true;
+}
+
+Mesh::Mesh(uint32_t numVertices, Vec3Graphics* vertices, Vec2Graphics* texCoords, Vec3Graphics* normals, Vec3Graphics* tangents, uint32_t numIndices, uint32_t* indices)
+{
+	glGenVertexArrays(1, &arrayObject);
+
+	for (int i = 0; i < MAX_BUFFER; ++i)
+		bufferObject[i] = 0;
+
+	type = GL_TRIANGLES;
+	texture = 0;
+	bumpTexture = 0;
+	colours = NULL;// new Vec4Graphics[numVertices];
+
+	transformCoords = true;
+
+	texture = NULL;
+
+	this->numVertices = numVertices;
+	this->numIndices = numIndices;
+	this->vertices = vertices;
+	textureCoords = texCoords;
+	this->normals = normals;
+	this->tangents = tangents;
+	this->indices = indices;
+
+	//CalcMeshUsage(this);
 }
 
 Mesh::~Mesh(void)	{
@@ -124,7 +150,7 @@ Mesh* Mesh::GenerateIcosphere(unsigned int tessalationLevel) {
 	if(tessalationLevel == 0) return nullptr;
 
 	// create 12 vertices of a icosahedron
-	float offset = (1.0 + sqrt(5.0)) * 0.5;
+	float offset = (1.0f + sqrt(5.0f)) * 0.5f;
 
 	vertices.push_back(Vec3Graphics(-1,  offset,  0));
 	vertices.push_back(Vec3Graphics(1,  offset,  0));
@@ -175,7 +201,7 @@ Mesh* Mesh::GenerateIcosphere(unsigned int tessalationLevel) {
 
 
 	// refine triangles
-	for(int i = 0; i < tessalationLevel; i++) {
+	for(unsigned int i = 0; i < tessalationLevel; i++) {
 		auto tempFaces = new std::vector<TriangleIndices>();
 		for(auto tri : *faces) {
 			// replace triangle by 4 triangles

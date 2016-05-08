@@ -21,6 +21,7 @@ _-_-_-_-_-_-_-""  ""
 #include "OGLRenderer.h"
 #include <vector>
 #include "Math/nclglMath.h"
+#include <cstdint>
 
 //A handy enumerator, to determine which member of the bufferObject array
 //holds which data
@@ -38,6 +39,8 @@ class Mesh	{
 public:
 	friend class MD5Mesh;
 	Mesh(void);
+	Mesh(uint32_t numVertices, Vec3Graphics* vertices, Vec2Graphics* texCoords, Vec3Graphics* normals, Vec3Graphics* tangents, uint32_t numIndices, uint32_t* indices);
+
 	virtual ~Mesh(void);
 
 	virtual void Draw();
@@ -78,9 +81,10 @@ public:
 	//Generates tangents for all facets. Assumes geometry type is GL_TRIANGLES...
 	void	GenerateTangents();
 
-protected:
 	//Buffers all VBO data into graphics memory. Required before drawing!
 	void	BufferData();
+
+protected:
 
 	//Helper function for GenerateTangents
 	Vec3Graphics GenerateTangent(const Vec3Graphics &a,const Vec3Graphics &b,const Vec3Graphics &c,const Vec2Graphics &ta,const Vec2Graphics &tb,const Vec2Graphics &tc);

@@ -21,14 +21,73 @@ in VERTEX {
 
 
 // array of offset direction for sampling
-vec3 gridSamplingDisk[20] = vec3[]
+const vec3 gridSamplingDisk[26] = vec3[]
 (
-   vec3(1, 1, 1), vec3(1, -1, 1), vec3(-1, -1, 1), vec3(-1, 1, 1), 
-   vec3(1, 1, -1), vec3(1, -1, -1), vec3(-1, -1, -1), vec3(-1, 1, -1),
-   vec3(1, 1, 0), vec3(1, -1, 0), vec3(-1, -1, 0), vec3(-1, 1, 0),
-   vec3(1, 0, 1), vec3(-1, 0, 1), vec3(1, 0, -1), vec3(-1, 0, -1),
-   vec3(0, 1, 1), vec3(0, -1, 1), vec3(0, -1, -1), vec3(0, 1, -1)
+//6 (+6 faces)
+    normalize(vec3( 1.0,  0.0,  0.0)), normalize(vec3( 0.0,  1.0,  0.0)), normalize(vec3( 0.0,  0.0,  1.0)),
+    normalize(vec3(-1.0,  0.0,  0.0)), normalize(vec3( 0.0, -1.0,  0.0)), normalize(vec3( 0.0,  0.0, -1.0)),
+//14 (+8 corners)
+    normalize(vec3( 1.0,  1.0,  1.0)), normalize(vec3(-1.0, -1.0, -1.0)),
+    normalize(vec3( 1.0, -1.0, -1.0)), normalize(vec3(-1.0,  1.0,  1.0)),
+    normalize(vec3(-1.0, -1.0,  1.0)), normalize(vec3( 1.0,  1.0, -1.0)),
+    normalize(vec3(-1.0,  1.0, -1.0)), normalize(vec3( 1.0, -1.0,  1.0)),
+//18 (+4 xz plane corners)
+    normalize(vec3( 1.0,  0.0,  1.0)), normalize(vec3(-1.0,  0.0, -1.0)),
+    normalize(vec3( 1.0,  0.0, -1.0)), normalize(vec3(-1.0,  0.0,  1.0)),
+//22 (+4 yx plane corners)
+    normalize(vec3( 1.0,  1.0,  0.0)), normalize(vec3(-1.0, -1.0,  0.0)),
+    normalize(vec3( 1.0, -1.0,  0.0)), normalize(vec3(-1.0,  1.0,  0.0)),
+//26 (+4 yz plane corners)
+    normalize(vec3( 0.0,  1.0,  1.0)), normalize(vec3( 0.0, -1.0, -1.0)),
+    normalize(vec3( 0.0,  1.0, -1.0)), normalize(vec3( 0.0, -1.0,  1.0))
 );
+
+//float bias = 0.05; //* tan(acos(slope)) * max(viewDistance / lightRadius, 0.25);
+const float bias = 0.05;
+const float offsetRadius = 0.02;
+
+float ShadowCalculationTest(vec3 fragPos, float slope)
+{
+    vec3 fragToLight = fragPos - lightPos;
+    float currentDepth = length(fragToLight);
+    
+    float shadow = 0.0;
+    const float breakCondition = 0.33;
+    for(int i = 0; i < 6; ++i)
+    {
+        float closestDepth = texture(depthMap, fragToLight + gridSamplingDisk[i] * offsetRadius).r;
+        closestDepth *= lightRadius;   // Undo mapping [0;1]
+        if((currentDepth - bias) > closestDepth)
+        {
+            shadow += 1.0;
+        }
+    }
+    if(shadow / 6.0 <= breakCondition) return 0.0;
+    
+    for(int i = 6; i < 14; ++i)
+    {
+        float closestDepth = texture(depthMap, fragToLight + gridSamplingDisk[i] * offsetRadius).r;
+        closestDepth *= lightRadius;   // Undo mapping [0;1]
+        if((currentDepth - bias) > closestDepth)
+        {
+            shadow += 1.0;
+        }
+    }
+    if(shadow / 14.0 <= breakCondition) return 1.0;
+    
+    for(int i = 14; i < 26; ++i)
+    {
+        float closestDepth = texture(depthMap, fragToLight + gridSamplingDisk[i] * offsetRadius).r;
+        closestDepth *= lightRadius;   // Undo mapping [0;1]
+        if((currentDepth - bias) > closestDepth)
+        {
+            shadow += 1.0;
+        }
+    }
+    if(shadow / 26.0 <= breakCondition) return 2.0;
+    
+    return 3.0;
+}
 
 float ShadowCalculation(vec3 fragPos, float slope)
 {
@@ -38,34 +97,29 @@ float ShadowCalculation(vec3 fragPos, float slope)
     float currentDepth = length(fragToLight);
     // Test for shadows with PCF
     float shadow = 0.0;
+    const float breakCondition = 0.33;
     
     float viewDistance = length(cameraPos - fragPos);
     
     //weighted bias based on slope
-    float bias = 0.15 * tan(acos(slope)) * max(viewDistance / lightRadius, 0.25);
+    float bias = 0.05; //* tan(acos(slope)) * max(viewDistance / lightRadius, 0.25);
     
-    int samples = 20;
+    const int samples = 26;
     
-    float diskRadius = 0.007 + viewDistance / 700.0;
+    float offsetRadius = 0.05;// + viewDistance / 700.0;
     //angle factor is used to remove shadows from well light corners
-    float oneMinusAngleToLightFactor = 1.0 - smoothstep(0.9, 1.0, slope);
+    //float oneMinusAngleToLightFactor = 1.0 - smoothstep(0.9, 1.0, slope);
     
     for(int i = 0; i < samples; ++i)
     {
-        float closestDepth = texture(depthMap, fragToLight + gridSamplingDisk[i] * diskRadius * oneMinusAngleToLightFactor).r;
+        float closestDepth = texture(depthMap, fragToLight + gridSamplingDisk[i] * offsetRadius).r;
         closestDepth *= lightRadius;   // Undo mapping [0;1]
         if((currentDepth - bias) > closestDepth)
         {
             shadow += 1.0;
         }
     }
-    shadow /= float(samples);
-        
-    // Display closestDepth as debug (to visualize depth cubemap)
-    // FragColor = vec4(vec3(closestDepth / lightRadius), 1.0);    
-        
-    // return shadow;
-    return shadow;
+    return shadow / float(samples);
 }
 
 
@@ -90,7 +144,6 @@ void  main(void)    {
     //}
 
     float shadow = ShadowCalculation(pos, dot(lightDir, normal));
-    
 
     vec3  incident = normalize(lightPos - pos);
     vec3  viewDir = normalize(cameraPos - pos);
@@ -102,4 +155,23 @@ void  main(void)    {
 
     out_diffColour = (1.0 - shadow) * lightColour * lambert * atten;
     out_specColour = lightColour * sFactor * atten * 0.33;
+    
+    shadow = 4.0;
+    
+    if(shadow <= 0.1)
+    {
+        out_diffColour = vec3(1.0, 1.0, 1.0);
+    }
+    else if(shadow <= 1.1)
+    {
+        out_diffColour = vec3(1.0, 0.75, 0.75);
+    }
+    else if(shadow <= 2.1)
+    {
+        out_diffColour = vec3(0.5, 75.0, 0.5);
+    }
+    else if(shadow <= 3.1)
+    {
+        out_diffColour = vec3(0.1, 0.1, 0.1);
+    }
 }

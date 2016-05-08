@@ -22,7 +22,7 @@ Light::~Light()
 void Light::UpdateLight(float msec)
 {
 	float dt = msec * 0.001f;
-	float speed = 15.0f * dt; //1.5m per second
+	float speed = 3.0f * dt; //1.5m per second
 
 
 	if (Window::GetKeyboard()->KeyDown(KEYBOARD_UP))

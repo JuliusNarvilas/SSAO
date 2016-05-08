@@ -4,6 +4,7 @@
 #include <ncltech\NCLDebug.h>
 #include <future>
 #include "ncltech\CommonMeshes.h"
+#include "Helpers\MeasuringTimer.h"
 
 Scene* scene = NULL;
 
@@ -24,15 +25,34 @@ int Quit(bool pause = false, const string& reason = "") {
 }
 
 void GameLoop(Scene* scene) {
+
+
 	while (Window::GetWindow().UpdateWindow() && !scene->GetEndScene()) {
 		//Note that for the sake of simplicity, all calculations with time will be done in seconds (ms * 0.001)
 		// this is to simplify physics, as I cant visualise how fast 0.02 meters per millisecond is.
 		float dt = Window::GetWindow().GetTimer()->GetTimedMS() * 0.001f;	//How many milliseconds since last update?
 
-		scene->UpdateScene(dt);
+		MEASURING_TIMER_LOG_START("root");
 
+		MEASURING_TIMER_LOG_START("update");
+		scene->UpdateScene(dt);
+		MEASURING_TIMER_LOG_END();
+
+		MEASURING_TIMER_LOG_START("render");
 		scene->RenderScene();
+		MEASURING_TIMER_LOG_END();
+
+		MEASURING_TIMER_LOG_START("present");
 		scene->Present();
+		MEASURING_TIMER_LOG_END();
+
+		MEASURING_TIMER_LOG_END();
+
+		if (Window::GetWindow().GetKeyboard()->KeyTriggered(KEYBOARD_R))
+		{
+			MEASURING_TIMER_PRINT(std::cout);
+		}
+		MEASURING_TIMER_CLEAR();
 	}
 }
 

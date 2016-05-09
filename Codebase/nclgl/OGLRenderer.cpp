@@ -236,12 +236,10 @@ matrix data. Sanity checks currentShader, so is always safe to
 call.
 */
 void OGLRenderer::UpdateShaderMatrices()	{
-	if(currentShader) {
-		//glUniformMatrix4fv(glGetUniformLocation(currentShader->GetProgram(), "modelMatrix"),	1,false, (float*)&modelMatrix);
-		glUniformMatrix4fv(glGetUniformLocation(currentShader->GetProgram(), "viewMatrix") ,	1,false, (float*)&viewMatrix);
-		glUniformMatrix4fv(glGetUniformLocation(currentShader->GetProgram(), "projMatrix") ,	1,false, (float*)&projMatrix);
-		//glUniformMatrix4fv(glGetUniformLocation(currentShader->GetProgram(), "textureMatrix")  ,1,false, (float*)&textureMatrix);
-	}
+	//glUniformMatrix4fv(glGetUniformLocation(currentShader->GetProgram(), "modelMatrix"),	1,false, (float*)&modelMatrix);
+	glUniformMatrix4fv(glGetUniformLocation(currentShader->GetProgram(), "viewMatrix") ,	1,false, (float*)&viewMatrix);
+	glUniformMatrix4fv(glGetUniformLocation(currentShader->GetProgram(), "projMatrix") ,	1,false, (float*)&projMatrix);
+	//glUniformMatrix4fv(glGetUniformLocation(currentShader->GetProgram(), "textureMatrix")  ,1,false, (float*)&textureMatrix);
 }
 
 void OGLRenderer::SetCurrentShader(Shader* s) {

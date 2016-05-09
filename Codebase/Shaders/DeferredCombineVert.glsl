@@ -1,6 +1,6 @@
 #version 330
 
-uniform  mat4  projMatrix;
+uniform  mat4  orthoProjMatrix;
 
 in vec3 position;
 in vec2 texCoord;
@@ -10,6 +10,6 @@ out VERTEX {
 } vs_out;
 
 void main(void) {
-    gl_Position = projMatrix * vec4(position, 1.0);
+    gl_Position = orthoProjMatrix * vec4(position, 1.0);
     vs_out.texCoord = texCoord;
 }

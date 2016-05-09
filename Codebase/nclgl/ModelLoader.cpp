@@ -155,7 +155,6 @@ Mesh* ModelLoader::LoadMGL(const std::string& filePath, bool bufferData)
 	assert(version == MGL_FILE_CURRENTVERSION);
 
 	Mesh* result = ReadMeshFromMGL(file);
-
 	if (bufferData)
 		result->BufferData();
 

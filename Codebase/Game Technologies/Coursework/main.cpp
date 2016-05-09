@@ -32,13 +32,13 @@ void GameLoop(Scene* scene) {
 		// this is to simplify physics, as I cant visualise how fast 0.02 meters per millisecond is.
 		float dt = Window::GetWindow().GetTimer()->GetTimedMS() * 0.001f;	//How many milliseconds since last update?
 
-		MEASURING_TIMER_LOG_START("root");
+		MEASURING_TIMER_LOG_START("frame");
 
-		MEASURING_TIMER_LOG_START("update");
+		MEASURING_TIMER_LOG_START("update ");
 		scene->UpdateScene(dt);
 		MEASURING_TIMER_LOG_END();
 
-		MEASURING_TIMER_LOG_START("render");
+		MEASURING_TIMER_LOG_START("render ");
 		scene->RenderScene();
 		MEASURING_TIMER_LOG_END();
 
@@ -57,36 +57,23 @@ void GameLoop(Scene* scene) {
 }
 
 int main() {
-	//-------------------
-	//--- MAIN ENGINE ---
-	//-------------------
-
 	//Initialise the Window
-	if (!Window::Initialise("Game Technologies - Framework Example", 1280, 800, false))
+	if (!Window::Initialise("Game Technologies - Framework Example", 1280, 720, false))
 		return Quit(true, "Window failed to initialise!");
 
 	Window::GetWindow().LockMouseToWindow(true);
 	Window::GetWindow().ShowOSPointer(false);
-
-	//Initialise the PhysicsEngine
 
 	//Initialise the Scene
 	scene = new MyScene(Window::GetWindow());
 	if (!scene->HasInitialised())
 		return Quit(true, "Renderer failed to initialise!");
 
-	/*CommonMeshes::InitializeMeshes();
-	NCLDebug::LoadShaders();*/
-
 	while (scene) {
 		GameLoop(scene);
-		scene->Cleanup();
 		Scene* temp = scene->GetNextScene(Window::GetWindow());
 		scene = temp;
 	}
-
-	/*CommonMeshes::ReleaseMeshes();
-	NCLDebug::ReleaseShaders();*/
 
 	//Cleanup
 	return Quit();

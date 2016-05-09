@@ -4,7 +4,7 @@
 #include <stack>
 
 
-MeasuringTimer MeasuringTimer::Instance(1000);
+MeasuringTimer MeasuringTimer::Instance(10);
 
 inline MeasuringTimer& MeasuringTimer::operator=(const MeasuringTimer& other) {
 	if(this != &other) {

@@ -16,7 +16,7 @@ void  main(void)    {
     vec3 light = texture(emissiveTex, IN.texCoord).xyz;
     vec3 specular = texture(specularTex, IN.texCoord).xyz;
 
-    FragColor = diffuse * (0.3 * texture(ssaoTex, IN.texCoord).r);    // ambient
+    FragColor = diffuse * 0.3 * texture(ssaoTex, IN.texCoord).r;    // ambient
     FragColor += diffuse * light; // lambert
-    FragColor += specular;        // Specular
+    FragColor += diffuse * specular;        // Specular
 }

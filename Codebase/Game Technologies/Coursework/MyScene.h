@@ -19,12 +19,8 @@ class MyScene : public Scene {
 	~MyScene();
 
 	bool InitialiseGL()	override;
-	void RenderScene() override;
 	void UpdateScene(float dt)  override;
-	//Scene* GetNextScene(Window& window) override;
 
  protected:
-	GameTimer		sceneUpdateTimer;
-	GameTimer		sceneRenderTimer;
 	std::vector<GameObject*> m_Resources;
 };

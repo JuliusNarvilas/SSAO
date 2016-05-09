@@ -26,9 +26,7 @@ in even more annoying.
 bool	OBJMesh::LoadOBJMesh(std::string filename)	{
 	std::ifstream f(filename.c_str(),std::ios::in);
 
-	if(!f) {//Oh dear, it can't find the file :(
-		throw std::invalid_argument( "OBJMesh::LoadOBJMesh could not find file." );
-	}
+	assert(f);
 
 	/*
 	Stores the loaded in vertex attributes

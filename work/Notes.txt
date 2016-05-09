@@ -1,0 +1,2 @@
+Analizuoti resursu naudojima kai paisomi 6 atskiri kadrai ir vienas cubemap kadras
+

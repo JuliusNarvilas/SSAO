@@ -84,6 +84,23 @@ public:
 	//Buffers all VBO data into graphics memory. Required before drawing!
 	void	BufferData();
 
+
+
+	//Number of vertices for this mesh
+	GLuint	numVertices;
+	//Pointer to vertex position attribute data (badly named...?)
+	Vec3Graphics*		vertices;
+	//Pointer to vertex colour attribute data
+	Vec4Graphics*		colours;
+	//Pointer to vertex texture coordinate attribute data
+	Vec2Graphics*		textureCoords;
+	//Pointer to vertex normals attribute data
+	Vec3Graphics*		normals;
+	//Pointer to vertex tangents attribute data
+	Vec3Graphics*		tangents;
+	//Pointer to vertex indices attribute data
+	unsigned int*	indices;
+
 protected:
 
 	//Helper function for GenerateTangents
@@ -93,8 +110,6 @@ protected:
 	GLuint	arrayObject;
 	//VBOs for this mesh
 	GLuint	bufferObject[MAX_BUFFER];
-	//Number of vertices for this mesh
-	GLuint	numVertices;
 	//Primitive type for this mesh (GL_TRIANGLES...etc)
 	GLuint	type;
 	//OpenGL texture name for the diffuse map
@@ -112,19 +127,6 @@ protected:
 	//it's sent off to graphics memory. For basic meshes, there's no
 	//real need to keep it, so feel free to delete it. For MD5Meshes,
 	//we need access to the vertex data for skinning per frame...
-
-	//Pointer to vertex position attribute data (badly named...?)
-	Vec3Graphics*		vertices;
-	//Pointer to vertex colour attribute data
-	Vec4Graphics*		colours;
-	//Pointer to vertex texture coordinate attribute data
-	Vec2Graphics*		textureCoords;
-	//Pointer to vertex normals attribute data
-	Vec3Graphics*		normals;
-	//Pointer to vertex tangents attribute data
-	Vec3Graphics*		tangents;
-	//Pointer to vertex indices attribute data
-	unsigned int*	indices;
 
 
 	bool			transformCoords;

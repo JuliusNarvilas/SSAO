@@ -80,7 +80,6 @@ public:
 	bool GetEndScene() { return m_EndScene; }
 	virtual Scene* GetNextScene(Window& window) { return nullptr; }
 
-	virtual void	Cleanup() {}
 	void			Present();
 protected:
 	void	BuildGeometryPassFBO();
@@ -102,6 +101,7 @@ protected:
 
 	bool				m_EndScene;
 	Camera*				m_Camera;
+	Mat4Graphics		m_OrthoProj;
 
 	Shader*				m_DebugShader;
 	Shader*				m_ShadowCubeShader;
@@ -111,13 +111,10 @@ protected:
 	Shader*				m_SSAOShader;
 	Shader*				m_SSAOBlurShader;
 
-	GameTimer			scenePresentTimer;
-
 	Light*				m_Light;
 
 	GameObject*			m_RootGameObject;
 
-	Frustum				m_FrameFrustum;
 	vector<FrustrumSortingObject> m_TransparentNodeList;
 	vector<FrustrumSortingObject> m_NodeList;
 

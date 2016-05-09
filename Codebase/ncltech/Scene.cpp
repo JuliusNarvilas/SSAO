@@ -8,7 +8,7 @@
 
 unsigned int Scene::RenderMode = 0;
 
-const GLuint SHADOW_WIDTH = 128 * 2, SHADOW_HEIGHT = 128 * 2;
+const GLuint SHADOW_WIDTH = 512, SHADOW_HEIGHT = 512;
 
 
 Scene::Scene(Window& window) : OGLRenderer(window) {
@@ -18,7 +18,7 @@ Scene::Scene(Window& window) : OGLRenderer(window) {
 	if (!m_DebugShader->IsOperational())
 		return;
 
-	m_ShadowCubeShader = new Shader(SHADERDIR"DepthCubemapVert.glsl", SHADERDIR"DepthCubemapFrag.glsl", SHADERDIR"DepthCubemapGeo.glsl");
+	m_ShadowCubeShader = new Shader(SHADERDIR"ShadowCasting/DepthCubemapVert.glsl", SHADERDIR"ShadowCasting/DepthCubemapFrag.glsl", SHADERDIR"ShadowCasting/DepthCubemapGeo.glsl");
 	assert(m_ShadowCubeShader->IsOperational());
 
 	m_GeometryShader = new Shader(SHADERDIR"DeferredGeometryVert.glsl", SHADERDIR"DeferredGeometryFrag.glsl");
@@ -69,6 +69,11 @@ Scene::Scene(Window& window) : OGLRenderer(window) {
 	m_Light = new Light(CommonMeshes::Sphere(), false);
 
 	m_ScreenQuad = Mesh::GenerateQuad();
+
+	m_OrthoProj = Mat4Graphics::Orthographic(-1, 1, 1, -1, -1, 1);
+	projMatrix = Mat4Graphics::Perspective(0.01f, 1000.0f, float(m_ScreenTexWidth) / float(m_ScreenTexHeight), 45.0f);
+
+	wglSwapIntervalEXT(0);
 }
 
 Scene::~Scene() {
@@ -130,10 +135,10 @@ GameObject* Scene::FindGameObject(const std::string& name) {
 //int frame_idx = 0;
 void Scene::RenderScene() {
 	//Check to see if the window has been resized
-	if (m_ScreenTexWidth != width || m_ScreenTexHeight != height)
+	/*if (m_ScreenTexWidth != width || m_ScreenTexHeight != height)
 	{
 		BuildGeometryPassFBO();
-	}
+	}*/
 
 	bool enableSSAO = false;
 	bool enableSSAOBlur = false;
@@ -141,11 +146,11 @@ void Scene::RenderScene() {
 	//////////////////////////////////////////////////////////////
 	//Shadow casting pass
 
-	glBindFramebuffer(GL_FRAMEBUFFER, m_ShadowFBO);
-	glClear(GL_DEPTH_BUFFER_BIT);
-
 	if (enableShadowCasting)
 	{
+		glBindFramebuffer(GL_FRAMEBUFFER, m_ShadowFBO);
+		glClear(GL_DEPTH_BUFFER_BIT);
+
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LEQUAL);
 		glEnable(GL_CULL_FACE);
@@ -173,8 +178,6 @@ void Scene::RenderScene() {
 
 	SetCurrentShader(m_GeometryShader);
 	viewMatrix = m_Camera->BuildViewMatrix();
-	projMatrix = Mat4Graphics::Perspective(0.01f, 1000.0f, float(m_ScreenTexWidth) / float(m_ScreenTexHeight), 45.0f);
-	m_FrameFrustum.FromMatrix(projMatrix * viewMatrix);
 	UpdateShaderMatrices();
 
 	UpdateWorldMatrices(m_RootGameObject, Mat4Physics::IDENTITY);
@@ -206,8 +209,7 @@ void Scene::RenderScene() {
 
 		glUniform2f(glGetUniformLocation(currentShader->GetProgram(), "pixelSize"), 1.0f / m_ScreenTexWidth, 1.0f / m_ScreenTexHeight);
 		glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "kernelSize"), m_HemisphereSampleSize);
-		projMatrix = Mat4Graphics::Orthographic(-1, 1, 1, -1, -1, 1);
-		glUniformMatrix4fv(glGetUniformLocation(currentShader->GetProgram(), "orthoProjMatrix"), 1, false, (float*)&projMatrix);
+		glUniformMatrix4fv(glGetUniformLocation(currentShader->GetProgram(), "orthoProjMatrix"), 1, false, (float*)&m_OrthoProj);
 
 		glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "depthTex"), 2);
 		glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "normalTex"), 3);
@@ -224,6 +226,7 @@ void Scene::RenderScene() {
 	}
 	else
 	{
+		glClearColor(1.0, 1.0, 1.0, 1.0);
 		glClear(GL_COLOR_BUFFER_BIT);
 	}
 	/////////////////////////////////////////////////////////////////////////////////////
@@ -238,8 +241,7 @@ void Scene::RenderScene() {
 		//UpdateShaderMatrices();
 
 		glUniform2f(glGetUniformLocation(currentShader->GetProgram(), "pixelSize"), 1.0f / m_ScreenTexWidth, 1.0f / m_ScreenTexHeight);
-		projMatrix = Mat4Graphics::Orthographic(-1, 1, 1, -1, -1, 1);
-		glUniformMatrix4fv(glGetUniformLocation(currentShader->GetProgram(), "orthoProjMatrix"), 1, false, (float*)&projMatrix);
+		glUniformMatrix4fv(glGetUniformLocation(currentShader->GetProgram(), "orthoProjMatrix"), 1, false, (float*)&m_OrthoProj);
 
 		glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "ssaoTex"), 2);
 
@@ -268,7 +270,6 @@ void Scene::RenderScene() {
 	glDisable(GL_DEPTH_TEST);
 
 	SetCurrentShader(m_LightShader);
-	projMatrix = Mat4Graphics::Perspective(0.01f, 1000.0f, float(m_ScreenTexWidth) / float(m_ScreenTexHeight), 45.0f);
 	UpdateShaderMatrices();
 	glUniform2f(glGetUniformLocation(currentShader->GetProgram(), "pixelSize"), 1.0f / m_ScreenTexWidth, 1.0f / m_ScreenTexHeight);
 	Mat4Graphics lightTransform = Mat4Graphics::Translation(m_Light->position) * Mat4Graphics::Scale(Vec3Graphics(m_Light->scale, m_Light->scale, m_Light->scale));
@@ -283,12 +284,16 @@ void Scene::RenderScene() {
 	glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "depthTex"), 2);
 	glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "normTex"), 3);
 	glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "depthMap"), 4);
+	glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "noiseTex"), 6);
+
 	glActiveTexture(GL_TEXTURE2);
 	glBindTexture(GL_TEXTURE_2D, m_GeometryDepthTex);
 	glActiveTexture(GL_TEXTURE3);
 	glBindTexture(GL_TEXTURE_2D, m_GeometryNormalTex);
 	glActiveTexture(GL_TEXTURE4);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, m_LightDepthCubeTex);
+	glActiveTexture(GL_TEXTURE6);
+	glBindTexture(GL_TEXTURE_2D, m_SSAONoiseTex);
 
 	m_Light->mesh->Draw();
 
@@ -296,14 +301,11 @@ void Scene::RenderScene() {
 	//Combine pass
 
 	glBindFramebuffer(GL_FRAMEBUFFER, m_FinalFBO);
-	glClearColor(0.6f, 0.6f, 0.6f, 1.f);
-	glClear(GL_COLOR_BUFFER_BIT);
 	glDisable(GL_BLEND);
 	glDisable(GL_CULL_FACE);
 
 	SetCurrentShader(m_CombineShader);
-	projMatrix = Mat4Graphics::Orthographic(-1, 1, 1, -1, -1, 1);
-	UpdateShaderMatrices();
+	glUniformMatrix4fv(glGetUniformLocation(currentShader->GetProgram(), "orthoProjMatrix"), 1, false, (float*)&m_OrthoProj);
 
 	glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "diffuseTex"), 2);
 	glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "emissiveTex"), 3);
@@ -349,10 +351,8 @@ void Scene::RenderLightMaps()
 	//camera view and proj are not valid
 	//UpdateShaderMatrices();
 
-	float aspect = (float)SHADOW_WIDTH / (float)SHADOW_HEIGHT;
-	float nearPlane = 1.0f;
-	float farPlane = m_Light->scale;
-	Mat4Graphics shadowProj = Mat4Graphics::Perspective(nearPlane, farPlane, aspect, 90.0f);
+	float aspect = float(SHADOW_WIDTH) / float(SHADOW_HEIGHT);
+	Mat4Graphics shadowProj = Mat4Graphics::Perspective(0.1f, m_Light->scale, aspect, 90.0f);
 
 	Mat4Graphics shadowTransforms[6];
 
@@ -593,21 +593,10 @@ void Scene::BuildHemisphere()
 
 
 void Scene::Present() {
-	scenePresentTimer.GetTimedMS();
-
 	//Present our Screen
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	PresentScreenFBO();
-
-	if ((RenderModeMasks[RenderMode] & RenderModeMasks[DebugRenderMode]) != 0) {
-		NCLDebug::AddStatusEntry(Vec4Graphics::ONES, "Scene Present     : %5.2fms", scenePresentTimer.GetTimedMS());
-	}
-
 	SwapBuffers();
-
-	if ((RenderModeMasks[RenderMode] & RenderModeMasks[DebugRenderMode]) != 0) {
-		NCLDebug::AddStatusEntry(Vec4Graphics::ONES, "Swap Buffers      : %5.2fms", scenePresentTimer.GetTimedMS());
-	}
 }
 
 void Scene::PresentScreenFBO() {

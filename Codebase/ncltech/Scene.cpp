@@ -8,7 +8,7 @@
 
 unsigned int Scene::RenderMode = 0;
 
-const GLuint SHADOW_WIDTH = 512, SHADOW_HEIGHT = 512;
+const GLuint SHADOW_WIDTH = 640, SHADOW_HEIGHT = 640;
 
 
 Scene::Scene(Window& window) : OGLRenderer(window) {
@@ -59,7 +59,7 @@ Scene::Scene(Window& window) : OGLRenderer(window) {
 	BuildSSAOBlurFBO();
 
 	SetCurrentShader(m_SSAOShader);
-	glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "samples"), 64, (float*)m_HemisphereSamples);
+	glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "samples"), m_HemisphereSampleSize, (float*)m_HemisphereSamples);
 
 	NCLDebug::LoadShaders();
 
@@ -140,9 +140,10 @@ void Scene::RenderScene() {
 		BuildGeometryPassFBO();
 	}*/
 
-	bool enableSSAO = false;
+	bool enableSSAO = true;
 	bool enableSSAOBlur = false;
-	bool enableShadowCasting = true;
+	bool enableShadowCasting = false;
+	bool enableShadows = false;
 	//////////////////////////////////////////////////////////////
 	//Shadow casting pass
 
@@ -259,44 +260,48 @@ void Scene::RenderScene() {
 	}
 	////////////////////////////////////////////////////////////////////////////////////
 	//Light pass
+	if (enableShadows)
+	{
+		glBindFramebuffer(GL_FRAMEBUFFER, m_LightPassFBO);
+		glClearColor(0.0f, 0.0f, 0.0f, 1.f);
+		glClear(GL_COLOR_BUFFER_BIT);
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_ONE, GL_ONE);
+		glEnable(GL_CULL_FACE);
+		glCullFace(GL_FRONT);
+		glDisable(GL_DEPTH_TEST);
 
-	glBindFramebuffer(GL_FRAMEBUFFER, m_LightPassFBO);
-	glClearColor(0.0f, 0.0f, 0.0f, 1.f);
-	glClear(GL_COLOR_BUFFER_BIT);
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_ONE, GL_ONE);
-	glEnable(GL_CULL_FACE);
-	glCullFace(GL_FRONT);
-	glDisable(GL_DEPTH_TEST);
+		SetCurrentShader(m_LightShader);
+		UpdateShaderMatrices();
+		glUniform2f(glGetUniformLocation(currentShader->GetProgram(), "pixelSize"), 1.0f / m_ScreenTexWidth, 1.0f / m_ScreenTexHeight);
+		Mat4Graphics lightTransform = Mat4Graphics::Translation(m_Light->position) * Mat4Graphics::Scale(Vec3Graphics(m_Light->scale, m_Light->scale, m_Light->scale));
 
-	SetCurrentShader(m_LightShader);
-	UpdateShaderMatrices();
-	glUniform2f(glGetUniformLocation(currentShader->GetProgram(), "pixelSize"), 1.0f / m_ScreenTexWidth, 1.0f / m_ScreenTexHeight);
-	Mat4Graphics lightTransform = Mat4Graphics::Translation(m_Light->position) * Mat4Graphics::Scale(Vec3Graphics(m_Light->scale, m_Light->scale, m_Light->scale));
+		//glUniformMatrix4fv(glGetUniformLocation(currentShader->GetProgram(), "depthMap"), 1, false, ???);
+		glUniformMatrix4fv(glGetUniformLocation(currentShader->GetProgram(), "modelMatrix"), 1, false, (float*)&lightTransform);
+		glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "lightPos"), 1, (float*)&m_Light->position);
+		glUniform1f(glGetUniformLocation(currentShader->GetProgram(), "lightRadius"), m_Light->scale);
+		glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "cameraPos"), 1, (float*)&m_Camera->GetPosition());
+		glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "lightColour"), 1, (float*)&Vec3Graphics::ONES);
 
-	//glUniformMatrix4fv(glGetUniformLocation(currentShader->GetProgram(), "depthMap"), 1, false, ???);
-	glUniformMatrix4fv(glGetUniformLocation(currentShader->GetProgram(), "modelMatrix"), 1, false, (float*)&lightTransform);
-	glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "lightPos"), 1, (float*)&m_Light->position);
-	glUniform1f(glGetUniformLocation(currentShader->GetProgram(), "lightRadius"), m_Light->scale);
-	glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "cameraPos"), 1, (float*)&m_Camera->GetPosition());
-	glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "lightColour"), 1, (float*)&Vec3Graphics::ONES);
+		glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "depthTex"), 2);
+		glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "normTex"), 3);
+		glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "depthMap"), 4);
 
-	glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "depthTex"), 2);
-	glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "normTex"), 3);
-	glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "depthMap"), 4);
-	glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "noiseTex"), 6);
+		glActiveTexture(GL_TEXTURE2);
+		glBindTexture(GL_TEXTURE_2D, m_GeometryDepthTex);
+		glActiveTexture(GL_TEXTURE3);
+		glBindTexture(GL_TEXTURE_2D, m_GeometryNormalTex);
+		glActiveTexture(GL_TEXTURE4);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, m_LightDepthCubeTex);
 
-	glActiveTexture(GL_TEXTURE2);
-	glBindTexture(GL_TEXTURE_2D, m_GeometryDepthTex);
-	glActiveTexture(GL_TEXTURE3);
-	glBindTexture(GL_TEXTURE_2D, m_GeometryNormalTex);
-	glActiveTexture(GL_TEXTURE4);
-	glBindTexture(GL_TEXTURE_CUBE_MAP, m_LightDepthCubeTex);
-	glActiveTexture(GL_TEXTURE6);
-	glBindTexture(GL_TEXTURE_2D, m_SSAONoiseTex);
-
-	m_Light->mesh->Draw();
-
+		m_Light->mesh->Draw();
+	}
+	else
+	{
+		glBindFramebuffer(GL_FRAMEBUFFER, m_LightPassFBO);
+		glClearColor(0.3f, 0.3f, 0.3f, 1.f);
+		glClear(GL_COLOR_BUFFER_BIT);
+	}
 	/////////////////////////////////////////////////////////////////
 	//Combine pass
 
@@ -491,11 +496,15 @@ void Scene::BuildShadowFBO()
 		glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT32F, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
 	}
 
-	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_DEPTH_TEXTURE_MODE, GL_INTENSITY);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, m_ShadowFBO);
 	glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, m_LightDepthCubeTex, 0);

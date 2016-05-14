@@ -161,7 +161,7 @@ protected:
 
 	void BuildHemisphere();
 
-	const int	m_HemisphereSampleSize = 64;
+	const int	m_HemisphereSampleSize = 16;
 	Vec3Graphics m_HemisphereSamples[64];
 
 

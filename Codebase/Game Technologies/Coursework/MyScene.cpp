@@ -34,8 +34,13 @@ bool MyScene::InitialiseGL() {
 	//m_Camera->SetPitch(-35.0f);
 	//m_Camera->SetYaw(-20.0f);
 	//wall
+	//m_Camera->SetPitch(-20.0f);
+	//m_Camera->SetYaw(-60.0f);
+
+	//shadow smoothing
+	m_Camera->SetPosition(Vec3Physics(-1.3f, 1.0f, 0.8f));
 	m_Camera->SetPitch(-20.0f);
-	m_Camera->SetYaw(-60.0f);
+	m_Camera->SetYaw(-15.0f);
 
 	//Create Ground
 	SimpleMeshObject* ground = new SimpleMeshObject("Ground");

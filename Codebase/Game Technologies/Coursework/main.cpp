@@ -50,7 +50,9 @@ void GameLoop(Scene* scene) {
 
 		if (Window::GetWindow().GetKeyboard()->KeyTriggered(KEYBOARD_R))
 		{
-			MEASURING_TIMER_PRINT(std::cout);
+			std::ofstream outfile;
+			outfile.open("test.txt", std::ios_base::app);
+			MEASURING_TIMER_PRINT(outfile);
 		}
 		MEASURING_TIMER_CLEAR();
 	}

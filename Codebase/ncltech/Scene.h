@@ -119,7 +119,7 @@ protected:
 	vector<FrustrumSortingObject> m_NodeList;
 
 	GLuint	m_ScreenTexWidth, m_ScreenTexHeight;
-	static const int s_TextureCount = 8;
+	static const int s_TextureCount = 9;
 	union
 	{
 		struct {
@@ -136,7 +136,8 @@ protected:
 			GLuint m_LightDepthCubeTex;
 
 			GLuint m_SSAONoiseTex;
-			GLuint m_SSAOTintTex;
+			GLuint m_SSAOTex;
+			GLuint m_SSAOBlurTex;
 		};
 		GLuint m_Textures[s_TextureCount];
 	};

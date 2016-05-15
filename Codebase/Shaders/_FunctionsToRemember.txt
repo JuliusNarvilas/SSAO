@@ -8,3 +8,20 @@ float LinearizeDepth(float depth)
 //usecase: LinearizeDepth(gl_FragCoord.z);
 
 http://www.learnopengl.com/#!Advanced-Lighting/SSAO
+
+
+http://www.slideshare.net/nonchaotic/a-bizarre-way-to-do-realtime-lighting
+
+fDepth is in [0-1]
+
+packing depth:
+half2 vPackedDepth = half2(floor(fDepth * 255.0f)/ 255.0f, frac(fDepth * 255.0f))
+
+unpack depth:
+float fDepth = vPackedDepth.x + vPackedDepth.y * (1.0f / 255.0f)
+
+get view space position from texture:
+
+fDepth is in [0, farClip] range
+g_vScale.xy moves vUV into [-1;1] range and scales by inverse proj matrix
+float3 vPosition = float3(g_vScale.xy * vUV + g_vScale.zw, 1.0f) * fDepth;

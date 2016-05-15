@@ -18,7 +18,9 @@ MyScene::MyScene(Window& window) : Scene(window) {
 	RenderMode = NormalAndDebugRenderMode;
 
 	m_Light->scale = 10;
-	m_Light->position = Vec3Graphics(1.3f, 4.0f, 2.0f);
+	//m_Light->position = Vec3Graphics(1.3f, 4.0f, 2.0f);
+	//SSAO test
+	m_Light->position = Vec3Graphics(-3.0f, 4.0f, -1.0f);
 }
 
 MyScene::~MyScene() {
@@ -31,16 +33,17 @@ MyScene::~MyScene() {
 bool MyScene::InitialiseGL() {
 	m_Camera->SetPosition(Vec3Physics(-1.5f, 3.0f, 3.0f));
 	//model 
-	//m_Camera->SetPitch(-35.0f);
-	//m_Camera->SetYaw(-20.0f);
+	m_Camera->SetPitch(-35.0f);
+	m_Camera->SetYaw(-20.0f);
 	//wall
 	//m_Camera->SetPitch(-20.0f);
 	//m_Camera->SetYaw(-60.0f);
 
 	//shadow smoothing
-	m_Camera->SetPosition(Vec3Physics(-1.3f, 1.0f, 0.8f));
+	/*m_Camera->SetPosition(Vec3Physics(-1.3f, 1.0f, 0.8f));
 	m_Camera->SetPitch(-20.0f);
 	m_Camera->SetYaw(-15.0f);
+	*/
 
 	//Create Ground
 	SimpleMeshObject* ground = new SimpleMeshObject("Ground");
@@ -63,7 +66,7 @@ bool MyScene::InitialiseGL() {
 	//Mesh* testMesh = ModelLoader::LoadMGL(MESHDIR"buddha.mgl");
 	testMesh->SetTexture(checkerboardTex);
 	test->SetMesh(testMesh, true);
-	test->SetLocalTransform(Mat4Physics::Translation(Vec3Physics(0.0, 0.5, 0.0f)) * Mat4Physics::Scale(Vec3Physics(1.0f, 1.0f, 1.0f)));
+	test->SetLocalTransform(Mat4Physics::Translation(Vec3Physics(0.0, 0.1, 0.0f)) * Mat4Physics::Scale(Vec3Physics(1.0f, 1.0f, 1.0f)));
 	//test->SetLocalTransform(Mat4Physics::Translation(Vec3Physics(0.0, 1.0, 0.0f)) * Mat4Physics::Scale(Vec3Physics(2.0f, 2.0f, 2.0f)) * Mat4Physics::RotationY(-100.0f));
 	//test->SetLocalTransform(Mat4Physics::Translation(Vec3Physics(0.0, 0.5, 0.0f)) * Mat4Physics::Scale(Vec3Physics(1.0f, 1.0f, 1.0f)) * Mat4Physics::RotationY(-160.0f));
 	test->SetColour(Vec4Graphics(0.2f, 1.0f, 0.5f, 1.0f));

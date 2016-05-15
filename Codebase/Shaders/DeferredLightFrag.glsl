@@ -21,8 +21,8 @@ in VERTEX {
 
 
 // array of offset direction for sampling
-const vec2 gridSamplingDisk[8] = 
-{
+const vec2 gridSamplingDisk[8] = vec2[]
+(
 vec2(-0.1242679f, -0.1288913f),
 vec2(0.6947502f, 0.01457239f),
 vec2(-0.6149264f, -0.2884163f),
@@ -31,7 +31,7 @@ vec2(0.3381125f, -0.4074082f),
 vec2(-0.267173f, -0.7710676f),
 vec2(-0.1626447f, 0.7281284f),
 vec2(-0.746909f, 0.3824375f)
-};
+);
 
 //generated poisson disk
 const vec2 gridSamplingDisk2[16] = vec2[]
@@ -55,8 +55,8 @@ const vec2 gridSamplingDisk2[16] = vec2[]
 );
 
 // For Poisson Disk PCF sampling
-const vec2 gridSamplingDisk3[64] =
-{
+const vec2 gridSamplingDisk3[64] = vec2[]
+(
     vec2(0.7418533f, -0.6667366f),
     vec2(0.4262091f, -0.9013284f),
     vec2(0.7375497f, 0.6691415f),
@@ -121,7 +121,7 @@ const vec2 gridSamplingDisk3[64] =
     vec2(0.1558783f, -0.08460935f),
     vec2(0.003256182f, 0.138135f),
     vec2(-0.1041822f, -0.02521214f)
-};
+);
 
 float ShadowCalculationTest(vec3 lightDir, float lightDist, float slope)
 {   

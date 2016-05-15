@@ -132,6 +132,13 @@ GameObject* Scene::FindGameObject(const std::string& name) {
 	return m_RootGameObject->FindGameObject(name);
 }
 
+
+bool enableSSAO = true;
+bool enableSSAOBlur = true;
+bool enableShadowCasting = true;
+bool enableShadows = true;
+const float SSAOSTexScaler = 0.5;
+
 //int frame_idx = 0;
 void Scene::RenderScene() {
 	//Check to see if the window has been resized
@@ -139,11 +146,9 @@ void Scene::RenderScene() {
 	{
 		BuildGeometryPassFBO();
 	}*/
+	int SSAOTexWidth = static_cast<int>(m_ScreenTexWidth * SSAOSTexScaler + 0.5f);
+	int SSAOTexHeight = static_cast<int>(m_ScreenTexHeight * SSAOSTexScaler + 0.5f);
 
-	bool enableSSAO = true;
-	bool enableSSAOBlur = false;
-	bool enableShadowCasting = false;
-	bool enableShadows = false;
 	//////////////////////////////////////////////////////////////
 	//Shadow casting pass
 
@@ -190,74 +195,6 @@ void Scene::RenderScene() {
 	glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "lightPos"), 1, (float*)&m_Light->position);
 	
 	m_Light->mesh->Draw();
-
-	//////////////////////////////////////////////////////////////////////////////////
-	//SSAO pass
-
-	glBindFramebuffer(GL_FRAMEBUFFER, m_SSAOFBO);
-
-	if (enableSSAO)
-	{
-		glDisable(GL_CULL_FACE);
-		glDisable(GL_BLEND);
-
-		//dont really need to clear as the whole thing is going to be rendered on top with no blending
-		//glClearColor(0.0f, 0.0f, 0.0f, 1.0f);//???
-		//glClear(GL_COLOR_BUFFER_BIT);
-
-		SetCurrentShader(m_SSAOShader);
-		UpdateShaderMatrices();
-
-		glUniform2f(glGetUniformLocation(currentShader->GetProgram(), "pixelSize"), 1.0f / m_ScreenTexWidth, 1.0f / m_ScreenTexHeight);
-		glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "kernelSize"), m_HemisphereSampleSize);
-		glUniformMatrix4fv(glGetUniformLocation(currentShader->GetProgram(), "orthoProjMatrix"), 1, false, (float*)&m_OrthoProj);
-
-		glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "depthTex"), 2);
-		glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "normalTex"), 3);
-		glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "noiseTex"), 4);
-
-		glActiveTexture(GL_TEXTURE2);
-		glBindTexture(GL_TEXTURE_2D, m_GeometryDepthTex);
-		glActiveTexture(GL_TEXTURE3);
-		glBindTexture(GL_TEXTURE_2D, m_GeometryNormalTex);
-		glActiveTexture(GL_TEXTURE4);
-		glBindTexture(GL_TEXTURE_2D, m_SSAONoiseTex);
-
-		m_ScreenQuad->Draw();
-	}
-	else
-	{
-		glClearColor(1.0, 1.0, 1.0, 1.0);
-		glClear(GL_COLOR_BUFFER_BIT);
-	}
-	/////////////////////////////////////////////////////////////////////////////////////
-	//Blur pass
-	if (enableSSAOBlur)
-	{
-		glBindFramebuffer(GL_FRAMEBUFFER, m_SSAOBlurFBO);
-		/*glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT);*/
-
-		SetCurrentShader(m_SSAOBlurShader);
-		//UpdateShaderMatrices();
-
-		glUniform2f(glGetUniformLocation(currentShader->GetProgram(), "pixelSize"), 1.0f / m_ScreenTexWidth, 1.0f / m_ScreenTexHeight);
-		glUniformMatrix4fv(glGetUniformLocation(currentShader->GetProgram(), "orthoProjMatrix"), 1, false, (float*)&m_OrthoProj);
-
-		glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "ssaoTex"), 2);
-
-		glActiveTexture(GL_TEXTURE2);
-		glBindTexture(GL_TEXTURE_2D, m_LightDiffuseTex);
-
-		m_ScreenQuad->Draw();
-	}
-	else
-	{
-		glBindFramebuffer(GL_READ_FRAMEBUFFER, m_SSAOFBO);
-		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_SSAOBlurFBO);
-
-		glBlitFramebuffer(0, 0, m_ScreenTexWidth, m_ScreenTexHeight, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
-	}
 	////////////////////////////////////////////////////////////////////////////////////
 	//Light pass
 	if (enableShadows)
@@ -302,6 +239,75 @@ void Scene::RenderScene() {
 		glClearColor(0.3f, 0.3f, 0.3f, 1.f);
 		glClear(GL_COLOR_BUFFER_BIT);
 	}
+
+	//////////////////////////////////////////////////////////////////////////////////
+	//SSAO pass
+
+	glBindFramebuffer(GL_FRAMEBUFFER, m_SSAOFBO);
+
+	glViewport(0, 0, SSAOTexWidth, SSAOTexHeight);
+	if (enableSSAO)
+	{
+		glDisable(GL_CULL_FACE);
+		glDisable(GL_BLEND);
+		//dont really need to clear as the whole thing is going to be rendered on top with no blending
+		//glClearColor(0.0f, 0.0f, 0.0f, 1.0f);//???
+		//glClear(GL_COLOR_BUFFER_BIT);
+
+		SetCurrentShader(m_SSAOShader);
+		UpdateShaderMatrices();
+
+		glUniform2f(glGetUniformLocation(currentShader->GetProgram(), "pixelSize"), 1.0f / SSAOTexWidth, 1.0f / SSAOTexHeight);
+		glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "kernelSize"), m_HemisphereSampleSize);
+		glUniformMatrix4fv(glGetUniformLocation(currentShader->GetProgram(), "orthoProjMatrix"), 1, false, (float*)&m_OrthoProj);
+
+		glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "depthTex"), 2);
+		glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "normalTex"), 3);
+		glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "noiseTex"), 4);
+
+		glActiveTexture(GL_TEXTURE2);
+		glBindTexture(GL_TEXTURE_2D, m_GeometryDepthTex);
+		glActiveTexture(GL_TEXTURE3);
+		glBindTexture(GL_TEXTURE_2D, m_GeometryNormalTex);
+		glActiveTexture(GL_TEXTURE4);
+		glBindTexture(GL_TEXTURE_2D, m_SSAONoiseTex);
+
+		m_ScreenQuad->Draw();
+	}
+	else
+	{
+		glClearColor(1.0, 1.0, 1.0, 1.0);
+		glClear(GL_COLOR_BUFFER_BIT);
+	}
+	/////////////////////////////////////////////////////////////////////////////////////
+	//Blur pass
+	if (enableSSAOBlur)
+	{
+		glBindFramebuffer(GL_FRAMEBUFFER, m_SSAOBlurFBO);
+		/*glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT);*/
+
+		SetCurrentShader(m_SSAOBlurShader);
+		//UpdateShaderMatrices();
+
+		glUniform2f(glGetUniformLocation(currentShader->GetProgram(), "pixelSize"), 1.0f / SSAOTexWidth, 1.0f / SSAOTexHeight);
+		glUniformMatrix4fv(glGetUniformLocation(currentShader->GetProgram(), "orthoProjMatrix"), 1, false, (float*)&m_OrthoProj);
+
+		glUniform1i(glGetUniformLocation(currentShader->GetProgram(), "ssaoTex"), 2);
+
+		glActiveTexture(GL_TEXTURE2);
+		glBindTexture(GL_TEXTURE_2D, m_SSAOTex);
+
+		m_ScreenQuad->Draw();
+	}
+	else
+	{
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, m_SSAOFBO);
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_SSAOBlurFBO);
+
+		glBlitFramebuffer(0, 0, SSAOTexWidth, SSAOTexHeight, 0, 0, SSAOTexWidth, SSAOTexHeight, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+	}
+	glViewport(0, 0, m_ScreenTexWidth, m_ScreenTexHeight);
 	/////////////////////////////////////////////////////////////////
 	//Combine pass
 
@@ -324,7 +330,7 @@ void Scene::RenderScene() {
 	glActiveTexture(GL_TEXTURE4);
 	glBindTexture(GL_TEXTURE_2D, m_LightSpecularTex);
 	glActiveTexture(GL_TEXTURE5);
-	glBindTexture(GL_TEXTURE_2D, m_SSAOTintTex);
+	glBindTexture(GL_TEXTURE_2D, m_SSAOBlurTex);
 
 	m_ScreenQuad->Draw();
 
@@ -412,15 +418,15 @@ void Scene::BuildGeometryPassFBO() {
 	// - Normal color buffer
 	glBindTexture(GL_TEXTURE_2D, m_GeometryNormalTex);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, m_ScreenTexWidth, m_ScreenTexHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_GeometryNormalTex, 0);
 
 	// - Color + Specular color buffer
 	glBindTexture(GL_TEXTURE_2D, m_GeometryColourTex);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, m_ScreenTexWidth, m_ScreenTexHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, m_GeometryColourTex, 0);
 
 	// Then also add render buffer object as depth buffer and check for completeness.
@@ -428,8 +434,13 @@ void Scene::BuildGeometryPassFBO() {
 	//Generate our Scene Depth Texture
 	glBindTexture(GL_TEXTURE_2D, m_GeometryDepthTex); //glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, m_ScreenDTex);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, m_ScreenTexWidth, m_ScreenTexHeight, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_GeometryDepthTex, 0);
 	//glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, 2, GL_DEPTH_COMPONENT32, width, height, GL_FALSE);
 
@@ -541,10 +552,19 @@ void Scene::BuildSSAOFBO()
 	glBindFramebuffer(GL_FRAMEBUFFER, m_SSAOFBO);
 
 	BuildSSAONoiseTex<4>();
-	
+	/*
 	//Reuse Light texture as target to later render to the real target when performing blur
 	glBindTexture(GL_TEXTURE_2D, m_LightDiffuseTex);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_LightDiffuseTex, 0);
+
+	GLuint attachments[1] = { GL_COLOR_ATTACHMENT0 };
+	glDrawBuffers(1, attachments);
+	*/
+	glBindTexture(GL_TEXTURE_2D, m_SSAOTex);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, static_cast<int>(m_ScreenTexWidth * SSAOSTexScaler + 0.5f), static_cast<int>(m_ScreenTexHeight * SSAOSTexScaler + 0.5f), 0, GL_RED, GL_UNSIGNED_BYTE, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_SSAOTex, 0);
 
 	GLuint attachments[1] = { GL_COLOR_ATTACHMENT0 };
 	glDrawBuffers(1, attachments);
@@ -557,12 +577,14 @@ void Scene::BuildSSAOFBO()
 void Scene::BuildSSAOBlurFBO()
 {
 	glBindFramebuffer(GL_FRAMEBUFFER, m_SSAOBlurFBO);
-
-	glBindTexture(GL_TEXTURE_2D, m_SSAOTintTex);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, m_ScreenTexWidth, m_ScreenTexHeight, 0, GL_RED, GL_UNSIGNED_BYTE, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_SSAOTintTex, 0);
+	
+	glBindTexture(GL_TEXTURE_2D, m_SSAOBlurTex);
+	
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, static_cast<int>(m_ScreenTexWidth * SSAOSTexScaler + 0.5f), static_cast<int>(m_ScreenTexHeight * SSAOSTexScaler + 0.5f), 0, GL_RED, GL_UNSIGNED_BYTE, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_SSAOBlurTex, 0);
 
 	GLuint attachments[1] = { GL_COLOR_ATTACHMENT0 };
 	glDrawBuffers(1, attachments);

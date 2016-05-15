@@ -12,7 +12,7 @@
 
 #define MEASURING_TIMER_LOG_START(str) MeasuringTimer::Instance.LogStart(str)
 #define MEASURING_TIMER_LOG_END() MeasuringTimer::Instance.LogEnd()
-#define MEASURING_TIMER_PRINT(stream) stream << MeasuringTimer::Instance
+#define MEASURING_TIMER_PRINT(stream) MeasuringTimer::Instance.Print(stream, 0, 0)
 #define MEASURING_TIMER_CLEAR() MeasuringTimer::Instance.Clear()
 
 class MeasuringTimer : public Timer {

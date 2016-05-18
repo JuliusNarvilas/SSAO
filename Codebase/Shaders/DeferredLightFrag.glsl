@@ -259,17 +259,30 @@ float ShadowCalculationSimple(vec3 lightDir, float lightDist, float slope)
     return 0.0;
 }
 
-
+vec2 encode (vec3 n)
+{
+    float f = sqrt(8.0f * n.z + 8.0f);
+    return n.xy / f + 0.5f;
+}
+vec3 decode (vec2 enc)
+{
+    vec2 fenc = enc * 4.0f - 2.0f;
+    float f = dot(fenc,fenc);
+    float g = sqrt(1.0f - f / 4.0f);
+    vec3 n;
+    n.xy = fenc * g;
+    n.z = 1.0 - f / 2.0f;
+    return n;
+}
 
 void  main(void)    {
     vec3 pos = vec3(( gl_FragCoord.x * pixelSize.x), (gl_FragCoord.y * pixelSize.y), 0.0);
     pos.z = texture(depthTex , pos.xy).r;
 
-    vec3 normal = normalize(texture(normTex, pos.xy).xyz * 2.0 - 1.0);
+    vec3 normal = decode(texture(normTex, pos.xy).xy);
 
     vec4 clip = fs_in.inverseProjView * vec4(pos * 2.0 - 1.0, 1.0);
     pos = clip.xyz / clip.w;
-
 
     vec3 dirToLight = lightPos - pos;
     float dist = length(dirToLight);

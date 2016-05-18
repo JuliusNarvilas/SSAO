@@ -61,13 +61,13 @@ bool MyScene::InitialiseGL() {
 
 	auto checkerboardTex = SOIL_load_OGL_texture(TEXTUREDIR"checkerboard.tga", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_NTSC_SAFE_RGB | SOIL_FLAG_COMPRESS_TO_DXT);
 	SimpleMeshObject* test = new SimpleMeshObject("Test");
-	Mesh* testMesh = ModelLoader::LoadMGL(MESHDIR"teapot.mgl");
-	//Mesh* testMesh = ModelLoader::LoadMGL(MESHDIR"dragon.mgl");
+	//Mesh* testMesh = ModelLoader::LoadMGL(MESHDIR"teapot.mgl");
+	Mesh* testMesh = ModelLoader::LoadMGL(MESHDIR"dragon.mgl");
 	//Mesh* testMesh = ModelLoader::LoadMGL(MESHDIR"buddha.mgl");
 	testMesh->SetTexture(checkerboardTex);
 	test->SetMesh(testMesh, true);
-	test->SetLocalTransform(Mat4Physics::Translation(Vec3Physics(0.0, 0.1, 0.0f)) * Mat4Physics::Scale(Vec3Physics(1.0f, 1.0f, 1.0f)));
-	//test->SetLocalTransform(Mat4Physics::Translation(Vec3Physics(0.0, 1.0, 0.0f)) * Mat4Physics::Scale(Vec3Physics(2.0f, 2.0f, 2.0f)) * Mat4Physics::RotationY(-100.0f));
+	//test->SetLocalTransform(Mat4Physics::Translation(Vec3Physics(0.0, 0.1, 0.0f)) * Mat4Physics::Scale(Vec3Physics(1.0f, 1.0f, 1.0f)));
+	test->SetLocalTransform(Mat4Physics::Translation(Vec3Physics(0.0, 1.0, 0.0f)) * Mat4Physics::Scale(Vec3Physics(2.0f, 2.0f, 2.0f)) * Mat4Physics::RotationY(-100.0f));
 	//test->SetLocalTransform(Mat4Physics::Translation(Vec3Physics(0.0, 0.5, 0.0f)) * Mat4Physics::Scale(Vec3Physics(1.0f, 1.0f, 1.0f)) * Mat4Physics::RotationY(-160.0f));
 	test->SetColour(Vec4Graphics(0.2f, 1.0f, 0.5f, 1.0f));
 	this->AddGameObject(test);

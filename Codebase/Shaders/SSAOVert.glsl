@@ -6,8 +6,8 @@ uniform mat4 projMatrix;
 uniform mat4 orthoProjMatrix;
 uniform mat4 viewMatrix;
 
-out mat4 inverseProjView;
 out mat4 inverseProj;
+out mat4 inverseProjView;
 out mat4 vpMatrix;
 
 void main()

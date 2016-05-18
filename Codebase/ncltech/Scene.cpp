@@ -417,7 +417,7 @@ void Scene::BuildGeometryPassFBO() {
 
 	// - Normal color buffer
 	glBindTexture(GL_TEXTURE_2D, m_GeometryNormalTex);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, m_ScreenTexWidth, m_ScreenTexHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RG8, m_ScreenTexWidth, m_ScreenTexHeight, 0, GL_RG, GL_UNSIGNED_BYTE, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_GeometryNormalTex, 0);
@@ -531,15 +531,12 @@ void Scene::BuildShadowFBO()
 void Scene::BuildFinalFBO()
 {
 	glBindFramebuffer(GL_FRAMEBUFFER, m_FinalFBO);
-	/*
+	
 	glBindTexture(GL_TEXTURE_2D, m_FinalTex);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, m_ScreenTexWidth, m_ScreenTexHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_FinalTex, 0);*/
-
-	glBindTexture(GL_TEXTURE_2D, m_GeometryNormalTex);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_GeometryNormalTex, 0);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_FinalTex, 0);
 
 	GLuint attachments[1] = { GL_COLOR_ATTACHMENT0 };
 	glDrawBuffers(1, attachments);

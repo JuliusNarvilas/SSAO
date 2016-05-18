@@ -7,7 +7,7 @@ uniform mat4 viewMatrix;
 uniform mat4 modelMatrix;
 
 out VERTEX {
-     mat4 inverseProjView;
+    mat4 inverseProjView;
 } vs_out;
 
 

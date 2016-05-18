@@ -21,6 +21,22 @@ uniform vec3 samples[64];
 // tile noise texture over screen based on screen dimensions divided by noise size
 //const vec2 noiseScale = vec2(800.0/4.0, 600.0/4.0); // screen = 800x600
 
+vec2 encode (vec3 n)
+{
+    float f = sqrt(8.0f * n.z + 8.0f);
+    return n.xy / f + 0.5f;
+}
+vec3 decode (vec2 enc)
+{
+    vec2 fenc = enc * 4.0f - 2.0f;
+    float f = dot(fenc,fenc);
+    float g = sqrt(1.0f - f / 4.0f);
+    vec3 n;
+    n.xy = fenc * g;
+    n.z = 1.0 - f / 2.0f;
+    return n;
+}
+
 void main()
 {
     vec2 noiseScale = vec2(1.0f) / pixelSize / vec2(4.0f);
@@ -28,7 +44,7 @@ void main()
     vec3 fragScreenPos = vec3(( gl_FragCoord.x * pixelSize.x), (gl_FragCoord.y * pixelSize.y), 0.0f);
     fragScreenPos.z = texture(depthTex , fragScreenPos.xy).r;
     
-    vec3 normal = normalize(texture(normalTex, fragScreenPos.xy).xyz * 2.0f - 1.0f);
+    vec3 normal = decode(texture(normalTex, fragScreenPos.xy).xy);
     vec3 randomVec = texture(noiseTex, fragScreenPos.xy * noiseScale).xyz * 2.0f - 1.0f;
     
     fragScreenPos = fragScreenPos * 2.0f - 1.0f;

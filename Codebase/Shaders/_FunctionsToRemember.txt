@@ -25,3 +25,50 @@ get view space position from texture:
 fDepth is in [0, farClip] range
 g_vScale.xy moves vUV into [-1;1] range and scales by inverse proj matrix
 float3 vPosition = float3(g_vScale.xy * vUV + g_vScale.zw, 1.0f) * fDepth;
+
+
+
+vec2 encodeNormal (vec3 n)
+{
+    return vec2(n.xy*0.5 + 0.5);
+}
+vec3 decodeNormal (vec2 enc)
+{
+    vec3 n;
+    n.xy = enc * 2.0f - 1.0f;
+    n.z = sqrt(1.0f - dot(n.xy, n.xy));
+    return n;
+}
+
+http://aras-p.info/texts/CompactNormalStorage.html
+ Spheremap Transform:
+ half2 encode (half3 n, float3 view)
+{
+    half2 enc = normalize(n.xy) * (sqrt(-n.z*0.5+0.5));
+    enc = enc*0.5+0.5;
+    return enc;
+}
+half3 decode (half4 enc, float3 view)
+{
+    half4 nn = enc*half4(2,2,0,0) + half4(-1,-1,1,-1);
+    half l = dot(nn.xyz,-nn.xyw);
+    nn.z = l;
+    nn.xy *= sqrt(l);
+    return nn.xyz * 2 + half3(0,0,-1);
+}
+or
+vec2 encode (vec3 n)
+{
+    float f = sqrt(8.0f * n.z + 8.0f);
+    return n.xy / f + 0.5f;
+}
+vec3 decode (vec2 enc)
+{
+    vec2 fenc = enc * 4.0f - 2.0f;
+    float f = dot(fenc,fenc);
+    float g = sqrt(1.0f - f / 4.0f);
+    vec3 n;
+    n.xy = fenc * g;
+    n.z = 1.0 - f / 2.0f;
+    return n;
+}
